@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>每日壁纸生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', STHeiti, 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .input-group {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 16px;
+            color: white;
+            transition: all 0.3s;
+            resize: none;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        textarea:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .preview-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .preview-wrapper {
+            width: 100%;
+            max-width: 180px;
+            aspect-ratio: 1206/2622;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        #previewCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        #downloadBtn {
+            width: 100%;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .theme-option {
+            flex: 1;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .theme-option:hover {
+            transform: scale(1.05);
+        }
+
+        .theme-option.active {
+            border-color: white;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+
+        .theme-1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .theme-2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .theme-3 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .theme-4 {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .theme-5 {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .spacing-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .spacing-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .spacing-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+
+        /* Hidden canvas for full resolution */
+        #canvas {
+            display: none;
+        }
+
+        .tips {
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ 每日壁纸生成器</h1>
+
+        <div class="input-group">
+            <label for="textInput">输入今日目标</label>
+            <textarea id="textInput" placeholder="每天进步1%，成为更好的自己" rows="3" maxlength="100"></textarea>
+
+            <label style="margin-top: 15px;">选择背景风格</label>
+            <div class="theme-selector">
+                <div class="theme-option theme-1 active" data-theme="1"></div>
+                <div class="theme-option theme-2" data-theme="2"></div>
+                <div class="theme-option theme-3" data-theme="3"></div>
+                <div class="theme-option theme-4" data-theme="4"></div>
+                <div class="theme-option theme-5" data-theme="5"></div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <div style="flex: 1;">
+                    <label for="textColor">文字颜色</label>
+                    <input type="color" id="textColor" value="#ffffff" style="width: 100%; height: 40px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer;">
+                </div>
+                <div style="flex: 2;">
+                    <label>行间距</label>
+                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                        <button class="spacing-btn" data-spacing="1.0">紧凑</button>
+                        <button class="spacing-btn active" data-spacing="1.25">标准</button>
+                        <button class="spacing-btn" data-spacing="1.5">舒适</button>
+                        <button class="spacing-btn" data-spacing="2.0">宽松</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <label>预览效果</label>
+            <div class="preview-wrapper">
+                <canvas id="previewCanvas"></canvas>
+            </div>
+            <button id="downloadBtn" class="btn btn-primary">下载壁纸</button>
+            <p class="tips">生成 iPhone 16 Pro 专用壁纸 (1206×2622px)</p>
+        </div>
+    </div>
+
+    <!-- Hidden full resolution canvas -->
+    <canvas id="canvas" width="1206" height="2622"></canvas>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+
+        // Set canvas dimensions
+        canvas.width = 1206;
+        canvas.height = 2622;
+        previewCanvas.width = 1206;
+        previewCanvas.height = 2622;
+
+        // Theme gradients
+        const themes = {
+            1: ['#667eea', '#764ba2'],  // Purple
+            2: ['#f093fb', '#f5576c'],  // Pink
+            3: ['#4facfe', '#00f2fe'],  // Blue
+            4: ['#43e97b', '#38f9d7'],  // Green
+            5: ['#fa709a', '#fee140']   // Sunset
+        };
+
+        let currentTheme = 1;
+        let currentText = '每天进步1%';
+        let currentTextColor = '#ffffff';
+        let currentLineSpacing = 1.25;
+
+        // Draw wallpaper function
+        function drawWallpaper(targetCtx, targetCanvas) {
+            // Clear canvas
+            targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+            // Draw gradient background
+            const gradient = targetCtx.createLinearGradient(0, 0, targetCanvas.width, targetCanvas.height);
+            gradient.addColorStop(0, themes[currentTheme][0]);
+            gradient.addColorStop(1, themes[currentTheme][1]);
+            targetCtx.fillStyle = gradient;
+            targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+            // Add subtle overlay pattern
+            targetCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * targetCanvas.width;
+                const y = Math.random() * targetCanvas.height;
+                const radius = Math.random() * 200 + 100;
+                targetCtx.beginPath();
+                targetCtx.arc(x, y, radius, 0, Math.PI * 2);
+                targetCtx.fill();
+            }
+
+            // Draw text
+            if (currentText) {
+                // Text settings
+                targetCtx.fillStyle = currentTextColor;
+                targetCtx.textAlign = 'center';
+                targetCtx.textBaseline = 'middle';
+
+                // Shadow for better readability
+                targetCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                targetCtx.shadowBlur = 20;
+                targetCtx.shadowOffsetX = 0;
+                targetCtx.shadowOffsetY = 5;
+
+                // Calculate font size based on text length and line count
+                const lineCount = currentText.split('\n').length;
+                let fontSize = 80;
+                if (currentText.length > 30 || lineCount > 2) {
+                    fontSize = 60;
+                } else if (currentText.length > 15) {
+                    fontSize = 70;
+                }
+
+                targetCtx.font = `${fontSize}px -apple-system, 'PingFang SC', sans-serif`;
+
+                // Position text in golden ratio point (slightly above center)
+                const textY = targetCanvas.height * 0.45;
+
+                // Handle text with manual line breaks (support \n)
+                const maxWidth = targetCanvas.width * 0.8;
+
+                // Split by newline first
+                const inputLines = currentText.split('\n');
+                let lines = [];
+
+                // Process each input line for potential wrapping
+                inputLines.forEach(inputLine => {
+                    if (inputLine.trim() === '') {
+                        // Keep empty lines for spacing
+                        lines.push('');
+                    } else {
+                        // Check if this line needs to be wrapped
+                        const metrics = targetCtx.measureText(inputLine);
+                        if (metrics.width > maxWidth) {
+                            // Need to wrap this line
+                            const words = inputLine.split('');
+                            let line = '';
+                            for (let i = 0; i < words.length; i++) {
+                                const testLine = line + words[i];
+                                const testMetrics = targetCtx.measureText(testLine);
+                                if (testMetrics.width > maxWidth && i > 0) {
+                                    lines.push(line);
+                                    line = words[i];
+                                } else {
+                                    line = testLine;
+                                }
+                            }
+                            if (line) lines.push(line);
+                        } else {
+                            // Line fits, add as is
+                            lines.push(inputLine);
+                        }
+                    }
+                });
+
+                // Draw each line
+                const lineHeight = fontSize * currentLineSpacing;
+                const startY = textY - (lines.length - 1) * lineHeight / 2;
+
+                lines.forEach((line, index) => {
+                    targetCtx.fillText(line, targetCanvas.width / 2, startY + index * lineHeight);
+                });
+
+                // Reset shadow
+                targetCtx.shadowColor = 'transparent';
+                targetCtx.shadowBlur = 0;
+                targetCtx.shadowOffsetX = 0;
+                targetCtx.shadowOffsetY = 0;
+
+                // Add date in small text at bottom
+                const date = new Date();
+                const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+                targetCtx.font = '28px -apple-system, sans-serif';
+                targetCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                targetCtx.fillText(dateStr, targetCanvas.width / 2, targetCanvas.height * 0.85);
+            }
+        }
+
+        // Update both canvases
+        function updateWallpaper() {
+            drawWallpaper(ctx, canvas);
+            drawWallpaper(previewCtx, previewCanvas);
+        }
+
+        // Text input handler
+        document.getElementById('textInput').addEventListener('input', (e) => {
+            currentText = e.target.value || '每天进步1%';
+            updateWallpaper();
+        });
+
+        // Theme selector
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                document.querySelector('.theme-option.active').classList.remove('active');
+                option.classList.add('active');
+                currentTheme = option.dataset.theme;
+                updateWallpaper();
+            });
+        });
+
+        // Text color handler
+        document.getElementById('textColor').addEventListener('input', (e) => {
+            currentTextColor = e.target.value;
+            updateWallpaper();
+        });
+
+        // Line spacing buttons
+        document.querySelectorAll('.spacing-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelector('.spacing-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                currentLineSpacing = parseFloat(btn.dataset.spacing);
+                updateWallpaper();
+            });
+        });
+
+        // Download function
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const date = new Date();
+                const filename = `wallpaper_${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}.png`;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 'image/png', 1.0);
+        });
+
+        // Initialize with default
+        updateWallpaper();
+    </script>
+</body>
+</html>
