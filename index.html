@@ -266,30 +266,24 @@
                 <div class="theme-option theme-5" data-theme="5"></div>
             </div>
 
-            <div style="display: flex; gap: 15px; margin-top: 15px;">
-                <div style="flex: 1;">
-                    <label for="textColor">文字颜色</label>
-                    <input type="color" id="textColor" value="#ffffff" style="width: 100%; height: 40px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer;">
-                </div>
-                <div style="flex: 2;">
-                    <label>行间距</label>
-                    <div style="display: flex; gap: 8px; margin-top: 5px;">
-                        <button class="spacing-btn" data-spacing="1.0">紧凑</button>
-                        <button class="spacing-btn active" data-spacing="1.25">标准</button>
-                        <button class="spacing-btn" data-spacing="1.5">舒适</button>
-                        <button class="spacing-btn" data-spacing="2.0">宽松</button>
-                    </div>
+            <div style="margin-top: 15px;">
+                <label>行间距</label>
+                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                    <button class="spacing-btn" data-spacing="1.0">紧凑</button>
+                    <button class="spacing-btn active" data-spacing="1.25">标准</button>
+                    <button class="spacing-btn" data-spacing="1.5">舒适</button>
+                    <button class="spacing-btn" data-spacing="2.0">宽松</button>
                 </div>
             </div>
 
             <div style="margin-top: 15px;">
-                <label>字体风格</label>
+                <label>字体风格（可选）</label>
                 <div style="display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap;">
-                    <button class="font-btn active" data-font="system">默认</button>
-                    <button class="font-btn" data-font="serif">宋体风</button>
-                    <button class="font-btn" data-font="rounded">圆体风</button>
-                    <button class="font-btn" data-font="tech">科技风</button>
-                    <button class="font-btn" data-font="hand">手写风</button>
+                    <button class="font-btn active" data-font="theme">跟随主题</button>
+                    <button class="font-btn" data-font="serif">经典衬线</button>
+                    <button class="font-btn" data-font="rounded">活泼圆体</button>
+                    <button class="font-btn" data-font="tech">极简无衬线</button>
+                    <button class="font-btn" data-font="hand">手写艺术</button>
                 </div>
             </div>
         </div>
@@ -320,20 +314,54 @@
         previewCanvas.width = 1206;
         previewCanvas.height = 2622;
 
-        // Theme gradients - 2024极简设计趋势
+        // Theme完整视觉方案 - 2024极简设计趋势
         const themes = {
-            1: ['#1a1a1a', '#3d3d3d'],  // 深黑渐变 - Ultra Thin
-            2: ['#e8e3db', '#c7b9a8'],  // 米色石纹 - Stone Neutral
-            3: ['#667eea', '#5e60ce'],  // 液态紫 - Liquid Glass
-            4: ['#00b4d8', '#0077b6'],  // 深海蓝 - Ocean Depth
-            5: ['#f4a261', '#e76f51']   // 赤陶日落 - Terracotta Sunset
+            1: {
+                name: 'Ultra Thin深黑',
+                gradient: ['#1a1a1a', '#3d3d3d'],
+                textColor: '#ffffff',
+                textShadow: 'rgba(0, 0, 0, 0.8)',
+                fontFamily: '"Noto Sans SC", "SF Pro Display", sans-serif',
+                fontWeight: '300'
+            },
+            2: {
+                name: 'Stone Neutral米色',
+                gradient: ['#e8e3db', '#c7b9a8'],
+                textColor: '#2c2c2c',
+                textShadow: 'rgba(255, 255, 255, 0.8)',
+                fontFamily: '"Noto Serif SC", serif',
+                fontWeight: '500'
+            },
+            3: {
+                name: 'Liquid Glass液态',
+                gradient: ['#667eea', '#5e60ce'],
+                textColor: '#ffffff',
+                textShadow: 'rgba(94, 96, 206, 0.5)',
+                fontFamily: '"Noto Sans SC", sans-serif',
+                fontWeight: '400'
+            },
+            4: {
+                name: 'Ocean Depth深海',
+                gradient: ['#00b4d8', '#0077b6'],
+                textColor: '#e8f4f8',
+                textShadow: 'rgba(0, 77, 115, 0.6)',
+                fontFamily: '"Noto Sans SC", sans-serif',
+                fontWeight: '500'
+            },
+            5: {
+                name: 'Terracotta赤陶',
+                gradient: ['#f4a261', '#e76f51'],
+                textColor: '#fffbf5',
+                textShadow: 'rgba(139, 69, 41, 0.6)',
+                fontFamily: '"ZCOOL KuaiLe", "Ma Shan Zheng", cursive',
+                fontWeight: 'normal'
+            }
         };
 
         let currentTheme = 1;
         let currentText = '每天进步1%';
-        let currentTextColor = '#ffffff';
         let currentLineSpacing = 1.25;
-        let currentFontStyle = 'system';
+        let currentFontStyle = 'theme';
 
         // 字体配置
         const fontStyles = {
@@ -371,10 +399,11 @@
             targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
 
             // Draw gradient background with better angle
+            const theme = themes[currentTheme];
             const gradient = targetCtx.createLinearGradient(0, 0, targetCanvas.width * 0.5, targetCanvas.height);
-            gradient.addColorStop(0, themes[currentTheme][0]);
-            gradient.addColorStop(0.6, themes[currentTheme][1]);
-            gradient.addColorStop(1, themes[currentTheme][0]);
+            gradient.addColorStop(0, theme.gradient[0]);
+            gradient.addColorStop(0.6, theme.gradient[1]);
+            gradient.addColorStop(1, theme.gradient[0]);
             targetCtx.fillStyle = gradient;
             targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
 
@@ -409,32 +438,39 @@
 
             // Draw text
             if (currentText) {
-                // Text settings
-                targetCtx.fillStyle = currentTextColor;
+                // 使用主题配置的文字样式
+                const theme = themes[currentTheme];
+                targetCtx.fillStyle = theme.textColor;
                 targetCtx.textAlign = 'center';
                 targetCtx.textBaseline = 'middle';
 
-                // Shadow for better readability
-                targetCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                targetCtx.shadowBlur = 20;
+                // 使用主题配置的阴影
+                targetCtx.shadowColor = theme.textShadow;
+                targetCtx.shadowBlur = 25;
                 targetCtx.shadowOffsetX = 0;
-                targetCtx.shadowOffsetY = 5;
+                targetCtx.shadowOffsetY = 6;
 
-                // Calculate font size based on text length and line count
+                // 计算字体大小 - 基础大小增加4px
                 const lineCount = currentText.split('\n').length;
-                let fontSize = 80;
+                let fontSize = 84;  // 80 + 4
                 if (currentText.length > 30 || lineCount > 2) {
-                    fontSize = 60;
+                    fontSize = 64;  // 60 + 4
                 } else if (currentText.length > 15) {
-                    fontSize = 70;
+                    fontSize = 74;  // 70 + 4
                 }
 
-                // 应用字体样式
-                const fontStyle = fontStyles[currentFontStyle];
-                targetCtx.font = `${fontStyle.style === 'italic' ? 'italic ' : ''}${fontStyle.weight} ${fontSize}px ${fontStyle.family}`;
-                if (fontStyle.letterSpacing) {
-                    // 注意：Canvas不直接支持letter-spacing，需要手动处理
+                // 应用主题字体样式或用户选择的字体
+                let fontFamily = theme.fontFamily;
+                let fontWeight = theme.fontWeight;
+
+                // 如果用户选择了特定字体，使用用户选择
+                if (currentFontStyle !== 'theme') {
+                    const fontStyle = fontStyles[currentFontStyle];
+                    fontFamily = fontStyle.family;
+                    fontWeight = fontStyle.weight;
                 }
+
+                targetCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
 
                 // Position text in golden ratio point (slightly above center)
                 const textY = targetCanvas.height * 0.45;
@@ -512,12 +548,6 @@
                 currentTheme = option.dataset.theme;
                 updateWallpaper();
             });
-        });
-
-        // Text color handler
-        document.getElementById('textColor').addEventListener('input', (e) => {
-            currentTextColor = e.target.value;
-            updateWallpaper();
         });
 
         // Line spacing buttons
