@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>每日壁纸生成器</title>
+    <!-- 引入免费的中文艺术字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -189,6 +193,28 @@
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
 
+        .font-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .font-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .font-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+
         .spacing-btn {
             flex: 1;
             padding: 8px;
@@ -255,6 +281,17 @@
                     </div>
                 </div>
             </div>
+
+            <div style="margin-top: 15px;">
+                <label>字体风格</label>
+                <div style="display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap;">
+                    <button class="font-btn active" data-font="system">默认</button>
+                    <button class="font-btn" data-font="serif">宋体风</button>
+                    <button class="font-btn" data-font="rounded">圆体风</button>
+                    <button class="font-btn" data-font="tech">科技风</button>
+                    <button class="font-btn" data-font="hand">手写风</button>
+                </div>
+            </div>
         </div>
 
         <div class="preview-container">
@@ -296,6 +333,37 @@
         let currentText = '每天进步1%';
         let currentTextColor = '#ffffff';
         let currentLineSpacing = 1.25;
+        let currentFontStyle = 'system';
+
+        // 字体配置
+        const fontStyles = {
+            system: {
+                family: '-apple-system, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+                weight: '400',
+                style: 'normal'
+            },
+            serif: {
+                family: '"Noto Serif SC", "Songti SC", "STSong", serif',
+                weight: '600',
+                style: 'normal'
+            },
+            rounded: {
+                family: '"ZCOOL KuaiLe", "PingFang SC", sans-serif',
+                weight: 'normal',
+                style: 'normal'
+            },
+            tech: {
+                family: '"Noto Sans SC", "SF Pro Display", sans-serif',
+                weight: '300',
+                style: 'normal',
+                letterSpacing: '0.05em'
+            },
+            hand: {
+                family: '"Ma Shan Zheng", "ZCOOL XiaoWei", cursive',
+                weight: 'normal',
+                style: 'normal'
+            }
+        };
 
         // Draw wallpaper function
         function drawWallpaper(targetCtx, targetCanvas) {
@@ -342,7 +410,12 @@
                     fontSize = 70;
                 }
 
-                targetCtx.font = `${fontSize}px -apple-system, 'PingFang SC', sans-serif`;
+                // 应用字体样式
+                const fontStyle = fontStyles[currentFontStyle];
+                targetCtx.font = `${fontStyle.style === 'italic' ? 'italic ' : ''}${fontStyle.weight} ${fontSize}px ${fontStyle.family}`;
+                if (fontStyle.letterSpacing) {
+                    // 注意：Canvas不直接支持letter-spacing，需要手动处理
+                }
 
                 // Position text in golden ratio point (slightly above center)
                 const textY = targetCanvas.height * 0.45;
@@ -441,6 +514,16 @@
                 document.querySelector('.spacing-btn.active').classList.remove('active');
                 btn.classList.add('active');
                 currentLineSpacing = parseFloat(btn.dataset.spacing);
+                updateWallpaper();
+            });
+        });
+
+        // Font style buttons
+        document.querySelectorAll('.font-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelector('.font-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                currentFontStyle = btn.dataset.font;
                 updateWallpaper();
             });
         });
