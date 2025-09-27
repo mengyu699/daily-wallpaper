@@ -1,0 +1,259 @@
+{
+  "name": "微信文章处理到飞书多维表格",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wechat-article",
+        "responseMode": "responseNode"
+      },
+      "name": "接收文章链接",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [120, 300],
+      "id": "webhook-trigger",
+      "webhookId": "wechat-article-webhook"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.article_url }}",
+        "options": {
+          "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+          },
+          "timeout": 30000
+        }
+      },
+      "name": "抓取文章内容",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [320, 300],
+      "id": "fetch-article"
+    },
+    {
+      "parameters": {
+        "functionCode": "\n// 解析微信文章HTML内容\nconst cheerio = require('cheerio');\n\n// 获取HTML内容\nconst html = $input.first().json.data;\nconst $ = cheerio.load(html);\n\n// 提取标题\nlet title = '';\ntitle = $('#activity-name').text().trim() || \n         $('h1').first().text().trim() || \n         $('title').text().trim();\n\n// 提取正文内容\nlet content = '';\nconst contentSelectors = [\n    '#js_content',\n    '.rich_media_content', \n    '.article-content',\n    '.content'\n];\n\nfor (const selector of contentSelectors) {\n    const element = $(selector);\n    if (element.length > 0) {\n        content = element.text().trim();\n        break;\n    }\n}\n\n// 清理内容\ncontent = content\n    .replace(/\\s+/g, ' ')\n    .replace(/微信号.*?功能介绍/g, '')\n    .replace(/长按二维码识别.*?$/, '')\n    .trim();\n\n// 获取原始链接\nconst originalUrl = $input.first().json.article_url || '';\n\n// 返回提取的数据\nreturn {\n    title: title,\n    content: content,\n    url: originalUrl,\n    extracted_at: new Date().toISOString()\n};\n"
+      },
+      "name": "解析文章内容",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [520, 300],
+      "id": "parse-content"
+    },
+    {
+      "parameters": {
+        "url": "https://api.deepseek.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-91bb8d3901d94e0e97af342969583f6c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "deepseek-chat"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"你是一个专业的文章总结助手，请将给定的文章内容总结为三句话，要求简洁明了，突出重点。\"}, {\"role\": \"user\", \"content\": \"请将以下文章总结为三句话:\\n\\n\" + $json.content}]"
+            },
+            {
+              "name": "max_tokens",
+              "value": 200
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "name": "AI总结文章",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [720, 300],
+      "id": "ai-summary"
+    },
+    {
+      "parameters": {
+        "functionCode": "\n// 处理DeepSeek API响应\nconst aiResponse = $input.first().json;\nlet summary = '';\n\ntry {\n    if (aiResponse.choices && aiResponse.choices.length > 0) {\n        summary = aiResponse.choices[0].message.content.trim();\n    } else {\n        summary = '总结生成失败';\n    }\n} catch (error) {\n    summary = '总结解析错误: ' + error.message;\n}\n\n// 合并所有数据\nconst previousData = $input.first().json;\nreturn {\n    ...previousData,\n    summary: summary,\n    processed_at: new Date().toISOString()\n};\n"
+      },
+      "name": "处理总结结果",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [920, 300],
+      "id": "process-summary"
+    },
+    {
+      "parameters": {
+        "url": "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "app_id",
+              "value": "cli_a4b128a68fb9d00e"
+            },
+            {
+              "name": "app_secret",
+              "value": "TMr6fIFmAYGWSE0m451ngfBcfwkQxAKc"
+            }
+          ]
+        }
+      },
+      "name": "获取飞书令牌",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300],
+      "id": "get-feishu-token"
+    },
+    {
+      "parameters": {
+        "url": "https://open.feishu.cn/open-apis/bitable/v1/apps/OLSZbjkWnanjJcsFnFtcCDUBnMd/tables/tbly8jbefZLe1Tjg/records",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node['获取飞书令牌'].json.tenant_access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "={\"文章标题\": $node['处理总结结果'].json.title, \"文章正文\": $node['处理总结结果'].json.content, \"文章链接\": {\"text\": $node['处理总结结果'].json.title, \"link\": $node['处理总结结果'].json.url}, \"AI总结\": $node['处理总结结果'].json.summary, \"处理时间\": (new Date($node['处理总结结果'].json.processed_at).getTime())}"
+            }
+          ]
+        }
+      },
+      "name": "写入飞书表格",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1320, 300],
+      "id": "write-to-feishu"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"文章处理完成\", \"title\": $node['处理总结结果'].json.title, \"summary\": $node['处理总结结果'].json.summary}"
+      },
+      "name": "返回处理结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1520, 300],
+      "id": "respond-webhook"
+    }
+  ],
+  "connections": {
+    "接收文章链接": {
+      "main": [
+        [
+          {
+            "node": "抓取文章内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取文章内容": {
+      "main": [
+        [
+          {
+            "node": "解析文章内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "解析文章内容": {
+      "main": [
+        [
+          {
+            "node": "AI总结文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI总结文章": {
+      "main": [
+        [
+          {
+            "node": "处理总结结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理总结结果": {
+      "main": [
+        [
+          {
+            "node": "获取飞书令牌",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "获取飞书令牌": {
+      "main": [
+        [
+          {
+            "node": "写入飞书表格",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "写入飞书表格": {
+      "main": [
+        [
+          {
+            "node": "返回处理结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null
+}

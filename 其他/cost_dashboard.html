@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Cost Optimization Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .metric-card h3 {
+            color: #4a5568;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-trend {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .trend-up {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        
+        .trend-down {
+            background-color: #c6f6d5;
+            color: #38a169;
+        }
+        
+        .trend-stable {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .charts-section {
+            margin-bottom: 3rem;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .chart-container h3 {
+            color: #4a5568;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+        
+        .recommendations-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .recommendations-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .recommendations-table th {
+            background: #f7fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .recommendations-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        
+        .recommendations-table tr:hover {
+            background: #f7fafc;
+        }
+        
+        .priority-high {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .priority-medium {
+            background: #fef5e7;
+            color: #d69e2e;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .priority-low {
+            background: #c6f6d5;
+            color: #38a169;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .action-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        
+        .action-button:hover {
+            background: #5a67d8;
+        }
+        
+        .action-button.secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .action-button.secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            transition: width 0.5s ease;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-active { background: #48bb78; }
+        .status-warning { background: #ed8936; }
+        .status-error { background: #f56565; }
+        
+        .refresh-time {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .recommendations-table {
+                font-size: 0.9rem;
+            }
+            
+            .recommendations-table th,
+            .recommendations-table td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cloud Cost Optimization Dashboard</h1>
+        <p>Real-time insights and recommendations for cost optimization</p>
+    </div>
+
+    <div class="container">
+        <!-- Summary Metrics -->
+        <div class="summary-grid">
+            <div class="metric-card">
+                <h3>Current Month Spend</h3>
+                <div class="metric-value" id="currentSpend">$12,450</div>
+                <div class="metric-trend trend-up" id="spendTrend">+8.5% vs last month</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Projected Month End</h3>
+                <div class="metric-value" id="projectedSpend">$18,675</div>
+                <div class="metric-trend trend-stable">Budget: $20,000</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 93%"></div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Optimization Opportunities</h3>
+                <div class="metric-value" id="totalSavings">$5,280</div>
+                <div class="metric-trend trend-down">47 recommendations</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Realized Savings MTD</h3>
+                <div class="metric-value" id="realizedSavings">$2,150</div>
+                <div class="metric-trend trend-down">YTD: $18,450</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Cost Trend (Last 30 Days)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="costTrendChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Service Cost Breakdown</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="serviceBreakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Optimization Progress</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="optimizationChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Resource Utilization</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="utilizationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations Section -->
+        <div class="recommendations-section">
+            <div class="section-header">
+                <h2 class="section-title">Cost Optimization Recommendations</h2>
+                <div class="filter-tabs">
+                    <div class="tab active" data-filter="all">All</div>
+                    <div class="tab" data-filter="high">High Priority</div>
+                    <div class="tab" data-filter="quick">Quick Wins</div>
+                    <div class="tab" data-filter="rightsizing">Rightsizing</div>
+                </div>
+            </div>
+            
+            <table class="recommendations-table" id="recommendationsTable">
+                <thead>
+                    <tr>
+                        <th>Priority</th>
+                        <th>Service/Resource</th>
+                        <th>Recommendation</th>
+                        <th>Monthly Savings</th>
+                        <th>Effort</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recommendationsBody">
+                    <!-- Recommendations will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Refresh Time Indicator -->
+    <div class="refresh-time" id="refreshTime">
+        Last updated: <span id="lastUpdate"></span>
+    </div>
+
+    <script>
+        // Sample data - in a real implementation, this would come from your APIs
+        const dashboardData = {
+            currentSpend: 12450,
+            projectedSpend: 18675,
+            budget: 20000,
+            totalSavings: 5280,
+            realizationSavings: 2150,
+            
+            costTrend: {
+                labels: Array.from({length: 30}, (_, i) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (29 - i));
+                    return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+                }),
+                data: [
+                    420, 450, 380, 520, 480, 390, 440, 510, 470, 420,
+                    460, 490, 520, 450, 410, 480, 520, 490, 460, 430,
+                    470, 510, 490, 520, 480, 440, 460, 490, 520, 450
+                ]
+            },
+            
+            serviceBreakdown: {
+                labels: ['EC2', 'S3', 'RDS', 'CloudFront', 'Lambda', 'ELB', 'Other'],
+                data: [4200, 1800, 2200, 800, 400, 600, 1450],
+                colors: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384']
+            },
+            
+            optimizationProgress: {
+                labels: ['Implemented', 'In Progress', 'Pending', 'Blocked'],
+                data: [15, 8, 18, 6],
+                colors: ['#48BB78', '#ED8936', '#4299E1', '#F56565']
+            },
+            
+            utilizationData: {
+                labels: ['CPU', 'Memory', 'Storage', 'Network'],
+                data: [45, 62, 78, 35],
+                colors: ['#667eea', '#f093fb', '#4facfe', '#43e97b']
+            },
+            
+            recommendations: [
+                {
+                    priority: 'high',
+                    service: 'EC2 (i-1234567890abcdef0)',
+                    recommendation: 'Rightsize from m5.xlarge to m5.large',
+                    savings: 720,
+                    effort: 'Low',
+                    status: 'pending',
+                    category: 'rightsizing'
+                },
+                {
+                    priority: 'high',
+                    service: 'RDS (mydb-prod)',
+                    recommendation: 'Enable Multi-AZ optimization',
+                    savings: 450,
+                    effort: 'Medium',
+                    status: 'in_progress',
+                    category: 'optimization'
+                },
+                {
+                    priority: 'medium',
+                    service: 'S3 (data-lake-bucket)',
+                    recommendation: 'Implement lifecycle policy',
+                    savings: 320,
+                    effort: 'Low',
+                    status: 'pending',
+                    category: 'storage'
+                },
+                {
+                    priority: 'medium',
+                    service: 'EBS Volumes (15 volumes)',
+                    recommendation: 'Convert gp2 to gp3',
+                    savings: 280,
+                    effort: 'Low',
+                    status: 'pending',
+                    category: 'rightsizing'
+                },
+                {
+                    priority: 'low',
+                    service: 'Reserved Instances',
+                    recommendation: 'Purchase 3-year RIs for stable workloads',
+                    savings: 1200,
+                    effort: 'High',
+                    status: 'analysis',
+                    category: 'purchasing'
+                },
+                {
+                    priority: 'high',
+                    service: 'Lambda Functions (api-processor)',
+                    recommendation: 'Optimize memory allocation',
+                    savings: 180,
+                    effort: 'Low',
+                    status: 'pending',
+                    category: 'rightsizing'
+                }
+            ]
+        };
+
+        // Chart configurations
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#4a5568';
+
+        // Initialize charts
+        function initializeCharts() {
+            // Cost Trend Chart
+            const costTrendCtx = document.getElementById('costTrendChart').getContext('2d');
+            new Chart(costTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: dashboardData.costTrend.labels,
+                    datasets: [{
+                        label: 'Daily Spend',
+                        data: dashboardData.costTrend.data,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Service Breakdown Chart
+            const serviceCtx = document.getElementById('serviceBreakdownChart').getContext('2d');
+            new Chart(serviceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: dashboardData.serviceBreakdown.labels,
+                    datasets: [{
+                        data: dashboardData.serviceBreakdown.data,
+                        backgroundColor: dashboardData.serviceBreakdown.colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            // Optimization Progress Chart
+            const optimizationCtx = document.getElementById('optimizationChart').getContext('2d');
+            new Chart(optimizationCtx, {
+                type: 'bar',
+                data: {
+                    labels: dashboardData.optimizationProgress.labels,
+                    datasets: [{
+                        data: dashboardData.optimizationProgress.data,
+                        backgroundColor: dashboardData.optimizationProgress.colors,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Utilization Chart
+            const utilizationCtx = document.getElementById('utilizationChart').getContext('2d');
+            new Chart(utilizationCtx, {
+                type: 'radar',
+                data: {
+                    labels: dashboardData.utilizationData.labels,
+                    datasets: [{
+                        label: 'Utilization %',
+                        data: dashboardData.utilizationData.data,
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: '#667eea',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Populate recommendations table
+        function populateRecommendations(filter = 'all') {
+            const tbody = document.getElementById('recommendationsBody');
+            const recommendations = dashboardData.recommendations;
+            
+            let filteredRecommendations = recommendations;
+            
+            if (filter !== 'all') {
+                if (filter === 'quick') {
+                    filteredRecommendations = recommendations.filter(r => r.effort === 'Low');
+                } else if (filter === 'rightsizing') {
+                    filteredRecommendations = recommendations.filter(r => r.category === 'rightsizing');
+                } else {
+                    filteredRecommendations = recommendations.filter(r => r.priority === filter);
+                }
+            }
+            
+            tbody.innerHTML = '';
+            
+            filteredRecommendations.forEach(rec => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="priority-${rec.priority}">${rec.priority.toUpperCase()}</span></td>
+                    <td>${rec.service}</td>
+                    <td>${rec.recommendation}</td>
+                    <td>$${rec.savings}/mo</td>
+                    <td>${rec.effort}</td>
+                    <td>
+                        <span class="status-indicator status-${rec.status === 'pending' ? 'warning' : rec.status === 'in_progress' ? 'active' : 'error'}"></span>
+                        ${rec.status.replace('_', ' ')}
+                    </td>
+                    <td>
+                        <button class="action-button" onclick="implementRecommendation('${rec.service}')">
+                            ${rec.status === 'pending' ? 'Implement' : 'View'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Tab filtering
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    populateRecommendations(tab.dataset.filter);
+                });
+            });
+        }
+
+        // Mock implementation function
+        function implementRecommendation(service) {
+            alert(`Implementation process started for: ${service}\n\nThis would typically:\n1. Run pre-implementation checks\n2. Create backup/rollback plan\n3. Execute the optimization\n4. Monitor the results`);
+        }
+
+        // Update last refresh time
+        function updateRefreshTime() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+        }
+
+        // Simulate real-time updates
+        function simulateRealTimeUpdates() {
+            setInterval(() => {
+                // Update current spend with small random variation
+                const currentSpendElement = document.getElementById('currentSpend');
+                const currentValue = parseInt(currentSpendElement.textContent.replace('$', '').replace(',', ''));
+                const newValue = currentValue + Math.floor(Math.random() * 50) - 25;
+                currentSpendElement.textContent = '$' + newValue.toLocaleString();
+                
+                updateRefreshTime();
+            }, 30000); // Update every 30 seconds
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            populateRecommendations();
+            setupTabs();
+            updateRefreshTime();
+            simulateRealTimeUpdates();
+        });
+
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>

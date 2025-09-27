@@ -1,0 +1,14 @@
+{
+  "testDate": "2025-07-17T14:33:53.701Z",
+  "testType": "2025年7月1日数据筛选功能验证",
+  "testSchemes": {
+    "timeBoundary": 3,
+    "dataMasking": 3,
+    "performance": 3,
+    "security": 3
+  },
+  "totalTests": 12,
+  "passed": 12,
+  "failed": 0,
+  "status": "PASSED"
+}

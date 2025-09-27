@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - 微信聊天记录分析系统</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-chat-dots-fill me-2"></i>
+                微信聊天分析系统
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="bi bi-speedometer2"></i> 数据面板
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="chatDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-search"></i> 聊天记录
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item active" href="/chat">消息搜索</a></li>
+                            <li><a class="dropdown-item" href="/chat/contacts">联系人</a></li>
+                            <li><a class="dropdown-item" href="/chat/groups">群聊</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/chat/export">数据导出</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="analysisDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-robot"></i> AI分析
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/analysis">智能分析</a></li>
+                            <li><a class="dropdown-item" href="/analysis/history">分析历史</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="bi bi-gear"></i> 设置
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">
+                            <i class="bi bi-info-circle"></i> 关于
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-search me-2"></i><%= title %></h2>
+                    <div class="btn-group" role="group">
+                        <a href="/chat/contacts" class="btn btn-outline-primary">
+                            <i class="bi bi-people"></i> 联系人
+                        </a>
+                        <a href="/chat/groups" class="btn btn-outline-primary">
+                            <i class="bi bi-chat-left-dots"></i> 群聊
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-funnel me-2"></i>搜索条件
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/chat/search" id="searchForm">
+                            <div class="mb-3">
+                                <label for="query" class="form-label">关键词</label>
+                                <input type="text" class="form-control" id="query" name="query" 
+                                       value="<%= query %>" placeholder="输入搜索关键词...">
+                                <div class="form-text">支持多个关键词，用空格分隔</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="startDate" class="form-label">开始日期</label>
+                                <input type="date" class="form-control" id="startDate" name="startDate" 
+                                       value="<%= filters.startDate || '' %>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="endDate" class="form-label">结束日期</label>
+                                <input type="date" class="form-control" id="endDate" name="endDate" 
+                                       value="<%= filters.endDate || '' %>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="contact" class="form-label">联系人</label>
+                                <input type="text" class="form-control" id="contact" name="contact" 
+                                       value="<%= filters.contact || '' %>" placeholder="联系人昵称或用户名">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="messageType" class="form-label">消息类型</label>
+                                <select class="form-select" id="messageType" name="messageType">
+                                    <option value="">所有类型</option>
+                                    <option value="text" <%= filters.messageType === 'text' ? 'selected' : '' %>>文本消息</option>
+                                    <option value="image" <%= filters.messageType === 'image' ? 'selected' : '' %>>图片</option>
+                                    <option value="voice" <%= filters.messageType === 'voice' ? 'selected' : '' %>>语音</option>
+                                    <option value="video" <%= filters.messageType === 'video' ? 'selected' : '' %>>视频</option>
+                                    <option value="file" <%= filters.messageType === 'file' ? 'selected' : '' %>>文件</option>
+                                    <option value="location" <%= filters.messageType === 'location' ? 'selected' : '' %>>位置</option>
+                                </select>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-2"></i>搜索
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearForm()">
+                                    <i class="bi bi-x-circle me-2"></i>清空
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <% if (typeof results !== 'undefined' && results.length > 0) { %>
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-graph-up me-2"></i>搜索统计
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-12">
+                                <div class="border-bottom pb-2 mb-2">
+                                    <h4 class="text-primary mb-0"><%= results.length %></h4>
+                                    <small class="text-muted">条消息</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+            </div>
+
+            <div class="col-lg-8">
+                <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <%= error %>
+                </div>
+                <% } %>
+
+                <% if (typeof results !== 'undefined' && results.length > 0) { %>
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>
+                            搜索结果 (<%= typeof total !== 'undefined' ? total : results.length %> 条)
+                        </h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" onclick="exportResults('json')">
+                                <i class="bi bi-download"></i> JSON
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="exportResults('csv')">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" style="max-height: 600px; overflow-y: auto;">
+                            <% results.forEach(function(message, index) { %>
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <% if (message.isGroup) { %>
+                                            <span class="badge bg-info me-2">
+                                                <i class="bi bi-people"></i> <%= message.chatroomName || '群聊' %>
+                                            </span>
+                                            <% } %>
+                                            <strong class="me-2"><%= message.senderName || message.sender %></strong>
+                                            <span class="badge bg-secondary">
+                                                <%= message.type === 'text' ? '文本' : 
+                                                    message.type === 'image' ? '图片' : 
+                                                    message.type === 'voice' ? '语音' : 
+                                                    message.type === 'video' ? '视频' : 
+                                                    message.type === 'file' ? '文件' : 
+                                                    message.type === 'location' ? '位置' : '其他' %>
+                                            </span>
+                                        </div>
+                                        <p class="mb-1">
+                                            <%- message.content.replace(new RegExp(`(${query.split(' ').filter(k => k).join('|')})`, 'gi'), '<mark>$1</mark>') %>
+                                        </p>
+                                    </div>
+                                    <small class="text-muted ms-3">
+                                        <%= message.timestamp ? new Date(message.timestamp).toLocaleString() : '未知时间' %>
+                                    </small>
+                                </div>
+                            </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+                <% } else if (typeof query !== 'undefined' && query) { %>
+                <div class="text-center py-5">
+                    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">未找到匹配的消息</h4>
+                    <p class="text-muted">请尝试调整搜索条件或关键词</p>
+                </div>
+                <% } else { %>
+                <div class="text-center py-5">
+                    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">开始搜索聊天记录</h4>
+                    <p class="text-muted">在左侧输入搜索条件，点击搜索按钮开始查找</p>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0 text-muted">
+                        <i class="bi bi-chat-dots me-1"></i>
+                        微信聊天记录分析系统 v1.0.0
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-0 text-muted">
+                        Powered by Chatlog & DeepSeek AI
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+    
+    <script>
+        function clearForm() {
+            document.getElementById('searchForm').reset();
+        }
+
+        function exportResults(format) {
+            const formData = new FormData(document.getElementById('searchForm'));
+            formData.append('export', format);
+            
+            fetch('/chat/export', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `search_results.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('导出失败:', error);
+                alert('导出失败，请稍后重试');
+            });
+        }
+
+        document.getElementById('startDate').addEventListener('change', function() {
+            const endDate = document.getElementById('endDate');
+            if (this.value && !endDate.value) {
+                endDate.min = this.value;
+            }
+        });
+
+        document.getElementById('endDate').addEventListener('change', function() {
+            const startDate = document.getElementById('startDate');
+            if (this.value && startDate.value && startDate.value > this.value) {
+                alert('结束日期不能早于开始日期');
+                this.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

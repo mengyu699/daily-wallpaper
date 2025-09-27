@@ -1,0 +1,16 @@
+{
+  "project": {
+    "path": "/Users/mengyu/Desktop/Cursor/chatlog-webui",
+    "analyzedAt": "2025-07-16T23:31:22+08:00",
+    "files": {
+      "javascript":     1714,
+      "typescript":      146,
+      "python":       51
+    },
+    "entryPoints": [
+      
+    ],
+    "hasPackageJson": true,
+    "hasGit": false
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:finance.sina.com.cn)",
+      "Read(/Users/mengyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/我来/**)",
+      "Read(/Users/mengyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/我来/**)",
+      "Read(/Users/mengyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/我来/03-创作工具区/**)",
+      "Read(/Users/mengyu/.config/**)",
+      "Read(/Users/mengyu/Library/**)",
+      "Read(/Users/mengyu/Library/**)",
+      "Read(/Users/mengyu/Library/Application Support/**)",
+      "Read(/Users/mengyu/Library/Application Support/Claude/**)",
+      "Read(/Users/mengyu/Library/Application Support/Claude/**)",
+      "Read(/Users/mengyu/Library/Application Support/Claude/**)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:open.feishu.cn)",
+      "Bash(python3:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_tabs",
+      "WebFetch(domain:yitanger.feishu.cn)",
+      "mcp__playwright__browser_install",
+      "Bash(pkill:*)",
+      "mcp__playwright__browser_take_screenshot",
+      "WebFetch(domain:rube.app)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  }
+}

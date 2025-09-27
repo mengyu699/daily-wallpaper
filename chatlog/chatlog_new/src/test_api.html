@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>微信聊天测试API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .message { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .sender { font-weight: bold; color: #1890ff; }
+        .timestamp { color: #666; font-size: 0.9em; }
+        .content { margin: 5px 0; }
+        input, button { padding: 10px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>微信聊天记录测试</h1>
+        
+        <div>
+            <input type="text" id="searchInput" placeholder="输入关键词搜索..." value="吃饭">
+            <button onclick="searchMessages()">搜索</button>
+        </div>
+
+        <div id="results"></div>
+
+        <h2>API测试</h2>
+        <button onclick="testAPI()">测试搜索API</button>
+        <button onclick="testStats()">测试统计API</button>
+
+        <div id="apiResults"></div>
+    </div>
+
+    <script>
+        // 模拟真实微信数据
+        const realWeChatData = [
+            {
+                _id: 'msg_001',
+                sender: '张三',
+                receiver: '我',
+                content: '今晚一起吃饭吗？我在公司楼下等你',
+                timestamp: '2024-07-15T18:30:00Z',
+                chatId: 'chat_001'
+            },
+            {
+                _id: 'msg_002', 
+                sender: '李四',
+                receiver: '我',
+                content: '项目进展如何？明天需要向老板汇报进度',
+                timestamp: '2024-07-16T09:15:00Z',
+                chatId: 'chat_002'
+            },
+            {
+                _id: 'msg_003',
+                sender: '王五',
+                receiver: '项目群',
+                content: '大家辛苦啦！今晚8点线上会议讨论技术方案',
+                timestamp: '2024-07-16T14:20:00Z',
+                chatId: 'chat_003'
+            },
+            {
+                _id: 'msg_004',
+                sender: '妈妈',
+                receiver: '我',
+                content: '周末回家吃饭吗？我给你做了你最爱吃的红烧肉',
+                timestamp: '2024-07-14T11:30:00Z',
+                chatId: 'chat_004'
+            },
+            {
+                _id: 'msg_005',
+                sender: '老板',
+                receiver: '我',
+                content: '明天早上9点来我办公室，讨论下季度计划',
+                timestamp: '2024-07-15T20:45:00Z',
+                chatId: 'chat_005'
+            }
+        ];
+
+        function searchMessages() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const results = realWeChatData.filter(msg => 
+                msg.content.toLowerCase().includes(query) ||
+                msg.sender.toLowerCase().includes(query) ||
+                msg.receiver.toLowerCase().includes(query)
+            );
+
+            displayResults(results);
+        }
+
+        function displayResults(messages) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <h3>找到 ${messages.length} 条消息</h3>
+                ${messages.map(msg => `
+                    <div class="message">
+                        <div class="sender">${msg.sender} → ${msg.receiver}</div>
+                        <div class="timestamp">${new Date(msg.timestamp).toLocaleString()}</div>
+                        <div class="content">${msg.content}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function testAPI() {
+            const apiDiv = document.getElementById('apiResults');
+            apiDiv.innerHTML = '测试API连接...';
+
+            try {
+                // 测试搜索API
+                const searchResults = await fetch(`/api/search?query=吃饭`).then(r => r.json());
+                apiDiv.innerHTML = `
+                    <h3>API测试结果</h3>
+                    <p><strong>搜索API:</strong> ${JSON.stringify(searchResults, null, 2)}</p>
+                `;
+            } catch (error) {
+                apiDiv.innerHTML = `
+                    <h3>API测试失败</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function testStats() {
+            const apiDiv = document.getElementById('apiResults');
+            apiDiv.innerHTML = '测试统计API...';
+
+            try {
+                const stats = await fetch(`/api/stats`).then(r => r.json());
+                apiDiv.innerHTML = `
+                    <h3>统计API测试结果</h3>
+                    <p><strong>统计数据:</strong> ${JSON.stringify(stats, null, 2)}</p>
+                `;
+            } catch (error) {
+                apiDiv.innerHTML = `
+                    <h3>统计API测试失败</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        // 页面加载时显示所有消息
+        window.onload = () => {
+            displayResults(realWeChatData);
+        };
+    </script>
+</body>
+</html>

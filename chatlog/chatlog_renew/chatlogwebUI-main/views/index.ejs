@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天记录查询</title>
+    <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Cron预览样式优化 */
+        .cron-preview-readable {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 4px;
+        }
+        
+        .cron-preview-technical {
+            font-size: 0.9em;
+            color: #6b7280;
+            font-family: 'Courier New', monospace;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .cron-preview code {
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #scheduledTime[title] {
+            border-bottom: 1px dotted #6b7280;
+            cursor: help;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部操作栏 -->
+        <header class="top-toolbar">
+            <div class="toolbar-left">
+                <h1><i class="fas fa-comments"></i> 聊天记录查询系统</h1>
+                <span class="version-badge">v2.7.0</span>
+            </div>
+            <div class="toolbar-center">
+                <!-- 将快捷操作按钮移至聊天记录查询区域 -->
+            </div>
+            <div class="toolbar-right">
+                <button id="modelSettingsBtn" class="toolbar-btn model-settings-btn" title="模型设置">
+                    <i class="fas fa-cog"></i> 模型设置
+                </button>
+                <button id="refreshBtn" class="toolbar-btn refresh-connection-btn" title="刷新连接状态">
+                    <i class="fas fa-refresh"></i> 刷新连接
+                </button>
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">连接状态检查中...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 中部：AI智能分析主控区 -->
+        <section class="ai-main-section">
+            <div class="ai-section-header">
+                <h2><i class="fas fa-brain"></i> 🤖 AI 智能分析中心</h2>
+            </div>
+            
+            <div class="ai-control-panel">
+                <!-- 一键全分析区域 -->
+                <div class="batch-analysis-section">
+                    <button id="batchAnalysisBtn" class="batch-analysis-btn">
+                        <i class="fas fa-magic"></i> 一键全分析
+                    </button>
+                    
+                    <!-- 批量分析进度显示 -->
+                    <div class="batch-progress" id="batchProgress" style="display: none;">
+                        <div class="progress-header">
+                            <span class="progress-title">正在批量分析...</span>
+                            <button class="cancel-batch-btn" id="cancelBatchBtn" title="取消批量分析">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="progress-info">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="progressBar"></div>
+                            </div>
+                            <div class="progress-text" id="progressText">准备开始...</div>
+                        </div>
+                        <div class="current-analysis" id="currentAnalysis">
+                            <span class="analysis-name"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI分析按钮组 -->
+                <div class="ai-analysis-grid">
+                    <div class="ai-btn-group">
+                        <button id="analyzeGroup1Btn" class="ai-btn" data-group="AI 编程互助会 07 群" data-type="programming">
+                            <i class="fas fa-code"></i> 编程群分析
+                        </button>
+                        <button class="ai-settings-btn" data-type="programming" title="设置编程群分析">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="ai-btn-group">
+                        <button id="analyzeGroup2Btn" class="ai-btn" data-group="小朋友学科学" data-type="science">
+                            <i class="fas fa-flask"></i> 科学群分析
+                        </button>
+                        <button class="ai-settings-btn" data-type="science" title="设置科学群分析">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="ai-btn-group">
+                        <button id="analyzeGroup3Btn" class="ai-btn" data-group="松节油读者群" data-type="reading">
+                            <i class="fas fa-book"></i> 读者群分析
+                        </button>
+                        <button class="ai-settings-btn" data-type="reading" title="设置读者群分析">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 动态分析项容器 -->
+                    <div id="dynamicAnalysisContainer"></div>
+                    
+                    <!-- 新增分析项按钮 -->
+                    <button id="addAnalysisBtn" class="add-analysis-btn">
+                        <i class="fas fa-plus"></i> 新增分析项
+                    </button>
+                </div>
+            </div>
+            
+            <!-- AI状态显示 -->
+            <div class="ai-status" id="aiStatus" style="display: none;">
+                <div class="ai-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>AI正在分析中...</span>
+                </div>
+            </div>
+            
+            <!-- 自定义分析表单 -->
+            <div class="custom-analysis-form" id="customAnalysisForm">
+                <div class="form-group">
+                    <label for="customTimeRange">时间范围：</label>
+                    <select id="customTimeRange" name="customTimeRange">
+                        <option value="yesterday">昨天 (2025-06-15)</option>
+                        <option value="2025-06-14~2025-06-14">前天 (2025-06-14)</option>
+                        <option value="2025-06-10~2025-06-16">最近一周</option>
+                        <option value="2025-06-01~2025-06-16">本月</option>
+                        <option value="2024-01-01~2025-12-31">全部时间</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="customGroup">选择群聊：</label>
+                    <select id="customGroup" name="customGroup">
+                        <option value="">请选择群聊</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="customPrompt">自定义分析提示词：</label>
+                    <div class="prompt-actions" style="margin-bottom: 0.5rem;">
+                        <button type="button" class="preset-btn" onclick="fillPresetPrompt('chatEssenceReport')" style="background: #f97316; color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
+                            📋 填入聊天精华报告模板
+                        </button>
+                    </div>
+                    <textarea id="customPrompt" name="customPrompt" placeholder="请输入您希望AI分析的具体内容，例如：分析最近一周的讨论话题分布、生成词云图、统计发言频率等..."></textarea>
+                </div>
+                <button type="button" id="executeCustomAnalysis" class="ai-btn">
+                    <i class="fas fa-play"></i> 执行分析
+                </button>
+            </div>
+        </section>
+
+        <!-- 定时任务管理区域 -->
+        <section class="scheduled-section">
+            <div class="panel-header">
+                <h3><i class="fas fa-clock"></i> ⏰ 定时分析管理</h3>
+            </div>
+            <div class="scheduled-content">
+                <div class="scheduled-status" id="scheduledStatus">
+                    <div class="status-item">
+                        <span class="status-label">状态:</span>
+                        <span class="status-value" id="scheduledEnabled">检查中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">执行时间:</span>
+                        <span class="status-value" id="scheduledTime">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">分析项数量:</span>
+                        <span class="status-value" id="scheduledItemCount">-</span>
+                        <i class="fas fa-info-circle status-info-icon" id="scheduledItemsInfo" title="点击查看配置的分析项"></i>
+                        <!-- 分析项详情浮窗 -->
+                        <div class="items-tooltip" id="itemsTooltip">
+                            <div class="tooltip-header">配置的分析项:</div>
+                            <div class="tooltip-content" id="tooltipContent">
+                                <p class="loading-items">正在加载配置...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="scheduled-actions">
+                    <button type="button" id="triggerScheduledBtn" class="scheduled-btn trigger-btn">
+                        <i class="fas fa-play"></i> 手动触发分析
+                    </button>
+                    <button type="button" id="refreshStatusBtn" class="scheduled-btn refresh-btn">
+                        <i class="fas fa-sync"></i> 刷新状态
+                    </button>
+                    <button type="button" id="configScheduledBtn" class="scheduled-btn config-btn">
+                        <i class="fas fa-cog"></i> 配置定时任务
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 分析历史记录区域 -->
+        <section class="history-section">
+            <div class="panel-header">
+                <h3><i class="fas fa-history"></i> 📊 分析历史记录</h3>
+            </div>
+            <div class="analysis-history" id="analysisHistory">
+                <p class="loading-history">正在加载历史记录...</p>
+            </div>
+        </section>
+
+        <!-- 聊天记录查询区域 -->
+        <section class="chat-section">
+            <div class="panel-header">
+                <h3><i class="fas fa-search"></i> 聊天记录查询</h3>
+                <div class="chat-quick-actions">
+                    <button id="loadContactsBtn" class="chat-action-btn">
+                        <i class="fas fa-users"></i> 联系人
+                    </button>
+                    <button id="loadChatroomsBtn" class="chat-action-btn">
+                        <i class="fas fa-comments"></i> 群聊
+                    </button>
+                    <button id="loadSessionsBtn" class="chat-action-btn">
+                        <i class="fas fa-clock"></i> 最近会话
+                    </button>
+                    <a href="/search.html" class="chat-action-btn" style="background: #3498db; color: white; text-decoration: none;">
+                        <i class="fas fa-search-plus"></i> 高级搜索
+                    </a>
+                </div>
+            </div>
+            
+            <main class="chat-panel">
+                
+                <!-- 搜索筛选表单 -->
+                <div class="search-controls">
+                    <form id="searchForm" class="search-form-horizontal">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="timeRange">时间范围</label>
+                                <select id="timeRange" name="timeRange">
+                                    <option value="month" selected>最近一月</option>
+                                    <option value="today">今天</option>
+                                    <option value="yesterday">昨天</option>
+                                    <option value="week">最近一周</option>
+                                    <option value="custom">自定义</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group custom-time" id="customTimeGroup" style="display: none;">
+                                <label for="startDate">开始日期</label>
+                                <input type="date" id="startDate" name="startDate">
+                                <label for="endDate">结束日期</label>
+                                <input type="date" id="endDate" name="endDate">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="talkerSelect">聊天对象</label>
+                                <select id="talkerSelect" name="talker">
+                                    <option value="">选择聊天对象</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="limitSelect">显示数量</label>
+                                <select id="limitSelect" name="limit">
+                                    <option value="20">20条</option>
+                                    <option value="50" selected>50条</option>
+                                    <option value="100">100条</option>
+                                    <option value="200">200条</option>
+                                    <option value="500">500条</option>
+                                    <option value="1000">1000条</option>
+                                    <option value="2000">2000条</option>
+                                    <option value="5000">5000条</option>
+                                    <option value="10000">10000条</option>
+                                    <option value="">不限制 ⚠️</option>
+                                </select>
+                                <div class="limit-warning" id="limitWarning">
+                                    ⚠️ 不限制条数可能会导致页面响应缓慢，建议仅在必要时使用
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-search"></i> 查询
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 聊天记录显示区域 -->
+                <div class="chat-content">
+                    <div class="chat-header">
+                        <h4 id="chatTitle">聊天记录</h4>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="welcome-message">
+                            <i class="fas fa-comments fa-3x"></i>
+                            <h3>欢迎使用聊天记录查询</h3>
+                            <p>请在上方选择筛选条件后点击查询按钮</p>
+                            <div class="tips">
+                                <h4>使用提示：</h4>
+                                <ul>
+                                    <li>首先点击右上角"联系人"或"群聊"获取聊天对象列表</li>
+                                    <li>选择时间范围和聊天对象进行精确查询</li>
+                                    <li>支持查看图片、语音等多媒体消息</li>
+                                    <li>可以导出查询结果为文本格式</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pagination" id="pagination" style="display: none;">
+                        <button id="prevBtn" class="page-btn" disabled>上一页</button>
+                        <span id="pageInfo">第 1 页</span>
+                        <button id="nextBtn" class="page-btn" disabled>下一页</button>
+                    </div>
+                </div>
+            </main>
+        </section>
+    </div>
+
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>正在加载...</p>
+        </div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <img id="modalImage" src="" alt="图片预览">
+        </div>
+    </div>
+
+    <!-- AI分析结果模态框 -->
+    <div class="ai-result-modal" id="aiResultModal">
+        <div class="ai-result-content">
+            <div class="ai-result-header">
+                <h3 id="aiResultTitle">AI 分析结果</h3>
+                <button class="ai-result-close" id="closeAiResult">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ai-result-body">
+                <iframe id="aiResultFrame" class="ai-result-iframe" srcdoc=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 定时任务配置模态框 -->
+    <div class="scheduled-config-modal" id="scheduledConfigModal">
+        <div class="scheduled-config-content">
+            <div class="scheduled-config-header">
+                <h3><i class="fas fa-clock"></i> 定时任务配置</h3>
+                <button class="scheduled-config-close" id="closeScheduledConfig">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="scheduled-config-body">
+                <form id="scheduledConfigForm">
+                    <!-- 基本配置 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-toggle-on"></i> 基本设置</h4>
+                        
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="enableScheduled" name="enableScheduled">
+                                <span class="switch-slider"></span>
+                                启用定时分析
+                            </label>
+                            <p class="config-help">开启后系统将按设定时间自动执行分析</p>
+                        </div>
+                    </div>
+
+                    <!-- 时间配置 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-clock"></i> 执行时间设置</h4>
+                        
+                        <div class="time-config-tabs">
+                            <button type="button" class="time-tab active" data-tab="simple">简单模式</button>
+                            <button type="button" class="time-tab" data-tab="advanced">高级模式</button>
+                        </div>
+
+                        <!-- 简单模式 -->
+                        <div class="time-config-panel" id="simpleTimePanel">
+                            <div class="config-group">
+                                <label for="simpleTimeType">执行频率：</label>
+                                <select id="simpleTimeType" name="simpleTimeType">
+                                    <option value="daily">每天</option>
+                                    <option value="weekdays">工作日</option>
+                                    <option value="weekends">周末</option>
+                                    <option value="weekly">每周</option>
+                                </select>
+                            </div>
+
+                            <div class="config-group">
+                                <label for="simpleTime">执行时间：</label>
+                                <input type="time" id="simpleTime" name="simpleTime" value="08:00">
+                            </div>
+
+                            <div class="config-group" id="weeklyDayGroup" style="display: none;">
+                                <label for="weeklyDay">选择星期：</label>
+                                <select id="weeklyDay" name="weeklyDay">
+                                    <option value="0">星期日</option>
+                                    <option value="1" selected>星期一</option>
+                                    <option value="2">星期二</option>
+                                    <option value="3">星期三</option>
+                                    <option value="4">星期四</option>
+                                    <option value="5">星期五</option>
+                                    <option value="6">星期六</option>
+                                </select>
+                            </div>
+
+                            <div class="cron-preview">
+                                <strong>Cron表达式预览：</strong>
+                                <code id="cronPreview">0 8 * * *</code>
+                            </div>
+                        </div>
+
+                        <!-- 高级模式 -->
+                        <div class="time-config-panel" id="advancedTimePanel" style="display: none;">
+                            <div class="config-group">
+                                <label for="cronExpression">Cron表达式：</label>
+                                <input type="text" id="cronExpression" name="cronExpression" 
+                                       placeholder="0 0 8 * * *" value="0 0 8 * * *">
+                                <p class="config-help">格式：秒 分 时 日 月 星期</p>
+                            </div>
+
+                            <div class="cron-examples">
+                                <h5>常用示例：</h5>
+                                <div class="example-buttons">
+                                    <button type="button" class="example-btn" data-cron="0 0 8 * * *">每天8点</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 9 * * 1-5">工作日9点</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 20 * * *">每天20点</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 */6 * * *">每6小时</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 0 * * 0">每周日午夜</button>
+                                </div>
+                            </div>
+
+                            <div class="cron-validation">
+                                <span id="cronValidation" class="validation-message"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分析项配置 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-list"></i> 分析项管理</h4>
+                        
+                        <div class="analysis-items-config">
+                            <div class="items-header">
+                                <span>已配置的分析项</span>
+                                <button type="button" id="refreshAnalysisItems" class="refresh-items-btn">
+                                    <i class="fas fa-sync"></i> 刷新
+                                </button>
+                            </div>
+                            
+                            <div class="items-list-config" id="analysisItemsConfig">
+                                <div class="loading-config">正在加载分析项...</div>
+                            </div>
+                        </div>
+
+                        <div class="config-tips">
+                            <h5><i class="fas fa-info-circle"></i> 配置提示：</h5>
+                            <ul>
+                                <li>请确保每个分析项都已配置群聊名称和提示词</li>
+                                <li>未配置完整的分析项将被跳过</li>
+                                <li>可以在上方"AI分析"区域配置分析项</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 高级选项 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-cogs"></i> 高级选项</h4>
+                        
+                        <div class="config-group">
+                            <label for="analysisTimeRange">分析时间范围：</label>
+                            <select id="analysisTimeRange" name="analysisTimeRange">
+                                <option value="yesterday" selected>昨天</option>
+                                <option value="today">今天</option>
+                                <option value="last3days">最近3天</option>
+                                <option value="lastweek">最近一周</option>
+                            </select>
+                            <p class="config-help">定时分析将分析指定时间范围的聊天数据</p>
+                        </div>
+
+                        <div class="config-group">
+                            <label for="analysisInterval">分析间隔（秒）：</label>
+                            <input type="number" id="analysisInterval" name="analysisInterval" 
+                                   value="3" min="1" max="60">
+                            <p class="config-help">每个分析项之间的等待时间，避免API频率限制</p>
+                        </div>
+
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="skipEmptyData" name="skipEmptyData" checked>
+                                <span class="switch-slider"></span>
+                                跳过无数据的分析项
+                            </label>
+                            <p class="config-help">当某个群聊在指定时间范围内无聊天数据时自动跳过</p>
+                        </div>
+
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="enableNotification" name="enableNotification">
+                                <span class="switch-slider"></span>
+                                启用执行通知
+                            </label>
+                            <p class="config-help">分析完成后在浏览器中显示通知（需要授权）</p>
+                        </div>
+                    </div>
+
+                    <!-- 按钮组 -->
+                    <div class="config-actions">
+                        <button type="button" id="testScheduledConfig" class="config-btn test-btn">
+                            <i class="fas fa-flask"></i> 测试配置
+                        </button>
+                        <button type="submit" class="config-btn save-btn">
+                            <i class="fas fa-save"></i> 保存配置
+                        </button>
+                        <button type="button" id="resetScheduledConfig" class="config-btn reset-btn">
+                            <i class="fas fa-undo"></i> 重置
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI设置模态框 -->
+    <div class="ai-settings-modal" id="aiSettingsModal">
+        <div class="ai-settings-content">
+            <div class="ai-settings-header">
+                <h3 id="aiSettingsTitle">AI 分析设置</h3>
+                <button class="ai-settings-close" id="closeAiSettings">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ai-settings-body">
+                <form id="aiSettingsForm">
+                    <input type="hidden" id="settingsType" name="settingsType" value="">
+                    
+                    <div class="settings-group">
+                        <label for="settingsDisplayName">显示名称：</label>
+                        <input type="text" id="settingsDisplayName" name="settingsDisplayName" placeholder="请输入显示在首页的名称">
+                    </div>
+                    
+                    <div class="settings-group">
+                        <label for="settingsTimeRange">默认时间范围：</label>
+                        <select id="settingsTimeRange" name="settingsTimeRange">
+                            <option value="yesterday">昨天</option>
+                            <option value="today">今天</option>
+                            <option value="week">最近一周</option>
+                            <option value="month">最近一月</option>
+                            <option value="custom">自定义范围</option>
+                        </select>
+                    </div>
+
+                    <div class="settings-group custom-date-range" id="customDateRange" style="display: none;">
+                        <div class="date-inputs">
+                            <div>
+                                <label for="settingsStartDate">开始日期：</label>
+                                <input type="date" id="settingsStartDate" name="settingsStartDate">
+                            </div>
+                            <div>
+                                <label for="settingsEndDate">结束日期：</label>
+                                <input type="date" id="settingsEndDate" name="settingsEndDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="settingsGroupName">默认群聊：</label>
+                        <div class="searchable-select">
+                            <input type="text" id="settingsGroupSearch" placeholder="🔍 搜索群聊名称..." class="group-search-input">
+                            <select id="settingsGroupName" name="settingsGroupName">
+                                <option value="">请选择群聊</option>
+                            </select>
+                            <div class="search-results-count" id="searchResultsCount" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="settingsPrompt">自定义提示词：</label>
+                        <div class="prompt-actions" style="margin-bottom: 0.5rem;">
+                            <button type="button" class="preset-btn small" onclick="fillSettingsPrompt()">
+                                📋 使用默认模板
+                            </button>
+                            <button type="button" class="preset-btn small" onclick="clearSettingsPrompt()">
+                                🗑️ 清空
+                            </button>
+                        </div>
+                        <textarea id="settingsPrompt" name="settingsPrompt" rows="8" 
+                                  placeholder="输入自定义分析提示词..."></textarea>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button type="button" id="deleteItemBtn" class="delete-item-btn" style="display: none;">
+                            <i class="fas fa-trash"></i> 删除此项
+                        </button>
+                        <button type="button" class="save-settings-btn" id="saveSettingsBtn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                        <button type="button" class="reset-settings-btn" id="resetSettingsBtn">
+                            <i class="fas fa-undo"></i> 恢复默认
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型设置模态框 -->
+    <div class="model-settings-modal" id="modelSettingsModal">
+        <div class="model-settings-content">
+            <div class="model-settings-header">
+                <h3><i class="fas fa-brain"></i> 模型设置</h3>
+                <button class="model-settings-close" id="closeModelSettings">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="model-settings-body">
+                <form id="modelSettingsForm">
+                    <!-- 模型提供商选择 -->
+                    <div class="settings-section">
+                        <h4><i class="fas fa-server"></i> 模型提供商</h4>
+                        <div class="provider-selection">
+                            <div class="provider-option">
+                                <input type="radio" id="providerDeepSeek" name="modelProvider" value="DeepSeek" checked>
+                                <label for="providerDeepSeek" class="provider-label">
+                                    <div class="provider-icon">🤖</div>
+                                    <div class="provider-info">
+                                        <span class="provider-name">DeepSeek</span>
+                                        <span class="provider-desc">高性能推理模型</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="provider-option">
+                                <input type="radio" id="providerGemini" name="modelProvider" value="Gemini">
+                                <label for="providerGemini" class="provider-label">
+                                    <div class="provider-icon">✨</div>
+                                    <div class="provider-info">
+                                        <span class="provider-name">Gemini</span>
+                                        <span class="provider-desc">Google 大语言模型</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DeepSeek 配置 -->
+                    <div class="settings-section provider-config" id="deepseekConfig">
+                        <h4><i class="fas fa-cog"></i> DeepSeek 配置</h4>
+                        <div class="config-group">
+                            <label for="deepseekModel">模型选择：</label>
+                            <select id="deepseekModel" name="deepseekModel">
+                                <option value="deepseek-chat">deepseek-chat (通用对话)</option>
+                                <option value="deepseek-reasoner">deepseek-reasoner (推理增强)</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label for="deepseekApiKey">API Key：</label>
+                            <div class="api-key-input">
+                                <input type="password" id="deepseekApiKey" name="deepseekApiKey" 
+                                       placeholder="sk-xxxxxxxxxxxxxxxxxxxxx">
+                                <button type="button" class="toggle-visibility" data-target="deepseekApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="key-status" id="deepseekKeyStatus"></div>
+                        </div>
+                    </div>
+
+                    <!-- Gemini 配置 -->
+                    <div class="settings-section provider-config" id="geminiConfig" style="display: none;">
+                        <h4><i class="fas fa-cog"></i> Gemini 配置</h4>
+                        <div class="config-group">
+                            <label for="geminiModel">模型选择：</label>
+                            <select id="geminiModel" name="geminiModel">
+                                <option value="gemini-2.5-pro" selected>gemini-2.5-pro (最新推荐)</option>
+                                <option value="gemini-pro">gemini-pro (通用模型)</option>
+                                <option value="gemini-pro-vision">gemini-pro-vision (多模态)</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label for="geminiApiKey">API Key：</label>
+                            <div class="api-key-input">
+                                <input type="password" id="geminiApiKey" name="geminiApiKey" 
+                                       placeholder="AIxxxxxxxxxxxxxxxxxxxxx">
+                                <button type="button" class="toggle-visibility" data-target="geminiApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="key-status" id="geminiKeyStatus"></div>
+                        </div>
+                    </div>
+
+                    <!-- 测试连接 -->
+                    <div class="settings-section">
+                        <h4><i class="fas fa-wifi"></i> 连接测试</h4>
+                        <div class="test-connection">
+                            <button type="button" id="testConnectionBtn" class="test-btn">
+                                <i class="fas fa-flask"></i> 测试连接
+                            </button>
+                            <div class="test-result" id="testResult"></div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="settings-actions">
+                        <button type="button" id="saveModelSettings" class="save-btn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                        <button type="button" id="resetModelSettings" class="reset-btn">
+                            <i class="fas fa-undo"></i> 恢复默认
+                        </button>
+                        <button type="button" id="cancelModelSettings" class="cancel-btn">
+                            <i class="fas fa-times"></i> 取消
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/preset-prompts.js?v=<%= Date.now() %>"></script>
+    <script src="/js/model-settings.js?v=<%= Date.now() %>"></script>
+    <script src="/js/ai-settings.js?v=<%= Date.now() %>"></script>
+    <script src="/js/app.js?v=<%= Date.now() %>"></script>
+</body>
+</html> 

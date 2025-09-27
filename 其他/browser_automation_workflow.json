@@ -1,0 +1,298 @@
+{
+  "name": "微信文章处理到飞书多维表格-浏览器版",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wechat-article",
+        "responseMode": "responseNode"
+      },
+      "name": "接收文章链接",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [120, 300],
+      "id": "webhook-trigger",
+      "webhookId": "wechat-article-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "\n// 准备浏览器访问参数\nconst articleUrl = $json.article_url;\n\nif (!articleUrl) {\n    throw new Error('Missing article_url parameter');\n}\n\n// 验证是否为微信文章链接\nif (!articleUrl.includes('mp.weixin.qq.com')) {\n    throw new Error('Invalid WeChat article URL');\n}\n\nreturn {\n    article_url: articleUrl,\n    timestamp: new Date().toISOString()\n};\n"
+      },
+      "name": "准备浏览器参数",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [320, 300],
+      "id": "prepare-browser-params"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.article_url }}",
+        "waitUntil": "networkidle",
+        "timeout": 30000,
+        "stealth": true
+      },
+      "name": "浏览器访问文章",
+      "type": "n8n-nodes-base.playwright",
+      "typeVersion": 1,
+      "position": [520, 300],
+      "id": "browser-navigate"
+    },
+    {
+      "parameters": {
+        "functionCode": "\n// 等待页面加载完成\nconst page = this.getPage();\n\n// 等待关键元素加载\nawait page.waitForSelector('body', { timeout: 15000 });\n\n// 滚动页面以触发懒加载内容\nawait page.evaluate(() => {\n    window.scrollTo(0, document.body.scrollHeight / 2);\n});\n\n// 等待一下让内容加载\nawait page.waitForTimeout(3000);\n\n// 再滚动到底部\nawait page.evaluate(() => {\n    window.scrollTo(0, document.body.scrollHeight);\n});\n\n// 等待最终内容加载\nawait page.waitForTimeout(2000);\n\nreturn { status: 'page_loaded' };\n"
+      },
+      "name": "等待页面加载",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [720, 300],
+      "id": "wait-page-load"
+    },
+    {
+      "parameters": {
+        "functionCode": "\n// 提取文章标题和内容\nconst page = this.getPage();\n\n// 获取页面HTML\nconst html = await page.content();\n\n// 使用cheerio解析\nconst cheerio = require('cheerio');\nconst $ = cheerio.load(html);\n\n// 提取标题 - 多种选择器\nlet title = '';\nconst titleSelectors = [\n    '#activity-name',\n    '.rich_media_title',\n    'h1.title', \n    'h1',\n    '.weui-msg__title',\n    '[data-role=\"title\"]',\n    '.rich_media_area_primary .rich_media_title'\n];\n\nfor (const selector of titleSelectors) {\n    const element = $(selector);\n    if (element.length > 0 && element.text().trim()) {\n        title = element.text().trim();\n        break;\n    }\n}\n\n// 提取正文内容 - 多种选择器\nlet content = '';\nconst contentSelectors = [\n    '#js_content',\n    '.rich_media_content',\n    '.article-content', \n    '.content',\n    '[data-role=\"content\"]',\n    '.weui-article__bd',\n    'div.rich_media_area_primary .rich_media_content'\n];\n\nfor (const selector of contentSelectors) {\n    const element = $(selector);\n    if (element.length > 0) {\n        // 清理不需要的元素\n        element.find('script, style, .rich_media_tool, .profile_container, .reward_area').remove();\n        content = element.text().trim();\n        if (content.length > 200) { // 确保获取到足够内容\n            break;\n        }\n    }\n}\n\n// 如果还没有内容，尝试更通用的方法\nif (!content || content.length < 100) {\n    // 移除不需要的元素\n    $('script, style, nav, footer, header, .ad, .advertisement, .rich_media_tool').remove();\n    // 尝试获取主要内容区域\n    const mainContent = $('.rich_media_area_primary').text().trim() || $('body').text().trim();\n    if (mainContent && mainContent.length > content.length) {\n        content = mainContent;\n    }\n}\n\n// 清理内容\nif (content) {\n    content = content\n        .replace(/\\s+/g, ' ')\n        .replace(/微信号.*?功能介绍/g, '')\n        .replace(/长按二维码识别.*?$/g, '')\n        .replace(/点击上方.*?关注/g, '')\n        .replace(/阅读原文.*?$/g, '')\n        .replace(/\\d+人点赞/g, '')\n        .replace(/分享.*?朋友圈/g, '')\n        .replace(/更多精彩内容.*?$/g, '')\n        .trim();\n}\n\nconst articleUrl = $input.first().json.article_url || '';\n\nreturn {\n    title: title || '未能提取标题',\n    content: content || '未能提取正文内容',\n    url: articleUrl,\n    extracted_at: new Date().toISOString(),\n    extraction_method: 'browser_automation',\n    debug_info: {\n        html_length: html.length,\n        title_found: !!title,\n        content_length: content.length,\n        page_title: await page.title()\n    }\n};\n"
+      },
+      "name": "浏览器提取内容",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [920, 300],
+      "id": "browser-extract-content"
+    },
+    {
+      "parameters": {
+        "url": "https://api.deepseek.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-91bb8d3901d94e0e97af342969583f6c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "deepseek-chat"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"你是一个专业的文章总结助手，请将给定的文章内容总结为三句话，要求简洁明了，突出重点。如果内容获取失败或不完整，请据实说明。\"}, {\"role\": \"user\", \"content\": \"请将以下文章总结为三句话:\\n\\n标题：\" + $json.title + \"\\n\\n内容：\" + $json.content.substring(0, 2000)}]"
+            },
+            {
+              "name": "max_tokens",
+              "value": 200
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "name": "AI总结文章",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300],
+      "id": "ai-summary"
+    },
+    {
+      "parameters": {
+        "functionCode": "\n// 处理DeepSeek API响应\nconst aiResponse = $input.first().json;\nlet summary = '';\n\ntry {\n    if (aiResponse.choices && aiResponse.choices.length > 0) {\n        summary = aiResponse.choices[0].message.content.trim();\n    } else {\n        summary = '总结生成失败';\n    }\n} catch (error) {\n    summary = '总结解析错误: ' + error.message;\n}\n\n// 合并所有数据\nconst previousData = $input.first().json;\nreturn {\n    ...previousData,\n    summary: summary,\n    processed_at: new Date().toISOString(),\n    processing_status: 'completed'\n};\n"
+      },
+      "name": "处理总结结果",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1320, 300],
+      "id": "process-summary"
+    },
+    {
+      "parameters": {
+        "url": "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "app_id",
+              "value": "cli_a4b128a68fb9d00e"
+            },
+            {
+              "name": "app_secret",
+              "value": "TMr6fIFmAYGWSE0m451ngfBcfwkQxAKc"
+            }
+          ]
+        }
+      },
+      "name": "获取飞书令牌",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1520, 300],
+      "id": "get-feishu-token"
+    },
+    {
+      "parameters": {
+        "url": "https://open.feishu.cn/open-apis/bitable/v1/apps/OLSZbjkWnanjJcsFnFtcCDUBnMd/tables/tbly8jbefZLe1Tjg/records",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node['获取飞书令牌'].json.tenant_access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "={\"文章标题\": $node['处理总结结果'].json.title, \"文章正文\": $node['处理总结结果'].json.content, \"文章链接\": {\"text\": $node['处理总结结果'].json.title, \"link\": $node['处理总结结果'].json.url}, \"AI总结\": $node['处理总结结果'].json.summary, \"处理时间\": (new Date($node['处理总结结果'].json.processed_at).getTime())}"
+            }
+          ]
+        }
+      },
+      "name": "写入飞书表格",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1720, 300],
+      "id": "write-to-feishu"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"浏览器自动化处理完成\", \"title\": $node['处理总结结果'].json.title, \"summary\": $node['处理总结结果'].json.summary, \"method\": \"browser_automation\", \"debug_info\": $node['处理总结结果'].json.debug_info}"
+      },
+      "name": "返回处理结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 300],
+      "id": "respond-webhook"
+    }
+  ],
+  "connections": {
+    "接收文章链接": {
+      "main": [
+        [
+          {
+            "node": "准备浏览器参数",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "准备浏览器参数": {
+      "main": [
+        [
+          {
+            "node": "浏览器访问文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "浏览器访问文章": {
+      "main": [
+        [
+          {
+            "node": "等待页面加载",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "等待页面加载": {
+      "main": [
+        [
+          {
+            "node": "浏览器提取内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "浏览器提取内容": {
+      "main": [
+        [
+          {
+            "node": "AI总结文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI总结文章": {
+      "main": [
+        [
+          {
+            "node": "处理总结结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理总结结果": {
+      "main": [
+        [
+          {
+            "node": "获取飞书令牌",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "获取飞书令牌": {
+      "main": [
+        [
+          {
+            "node": "写入飞书表格",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "写入飞书表格": {
+      "main": [
+        [
+          {
+            "node": "返回处理结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null
+}

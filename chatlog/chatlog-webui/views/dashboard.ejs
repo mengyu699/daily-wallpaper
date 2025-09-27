@@ -1,0 +1,403 @@
+<% const scripts = `
+<script>
+// Dashboard specific JavaScript
+let memoryChart;
+let memoryData = [];
+let chartLabels = [];
+
+// 初始化页面
+document.addEventListener('DOMContentLoaded', function() {
+    initMemoryChart();
+    updateDashboard();
+    startAutoRefresh();
+});
+
+// 初始化内存图表
+function initMemoryChart() {
+    const ctx = document.getElementById('memoryChart').getContext('2d');
+    memoryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '内存使用 (MB)',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 2,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 200,
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' MB';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+}
+
+// 更新仪表板数据
+async function updateDashboard() {
+    try {
+        // 获取系统状态
+        const statusResponse = await fetch('/health');
+        const status = await statusResponse.json();
+        
+        // 更新内存信息
+        if (status.memory) {
+            const heapUsedMB = Math.round(status.memory.heapUsed / 1024 / 1024);
+            const heapTotalMB = Math.round(status.memory.heapTotal / 1024 / 1024);
+            
+            document.getElementById('memoryUsage').textContent = heapUsedMB + ' MB';
+            document.getElementById('heapInfo').textContent = 
+                \`\${heapUsedMB}MB / \${heapTotalMB}MB\`;
+            
+            // 更新内存图表
+            updateMemoryChart(heapUsedMB);
+        }
+        
+        // 更新 Chatlog 状态
+        try {
+            const chatlogResponse = await fetch('/api/chat/status');
+            const chatlogStatus = await chatlogResponse.json();
+            
+            const chatlogBadge = document.getElementById('chatlogBadge');
+            const chatlogMessage = document.getElementById('chatlogMessage');
+            
+            if (chatlogStatus.success) {
+                chatlogBadge.className = 'badge bg-success';
+                chatlogBadge.textContent = '已连接';
+                chatlogMessage.textContent = chatlogStatus.message || '服务正常';
+            } else {
+                chatlogBadge.className = 'badge bg-danger';
+                chatlogBadge.textContent = '未连接';
+                chatlogMessage.textContent = chatlogStatus.message || '服务不可用';
+            }
+        } catch (error) {
+            const chatlogBadge = document.getElementById('chatlogBadge');
+            const chatlogMessage = document.getElementById('chatlogMessage');
+            chatlogBadge.className = 'badge bg-danger';
+            chatlogBadge.textContent = '未连接';
+            chatlogMessage.textContent = '无法连接到Chatlog服务';
+        }
+        
+        // 更新时间戳
+        const now = new Date().toLocaleString('zh-CN');
+        document.getElementById('webServerTime').textContent = now;
+        document.getElementById('chatlogTime').textContent = now;
+        document.getElementById('aiTime').textContent = now;
+        
+        // 更新系统信息
+        document.getElementById('nodeVersion').textContent = status.version || 'Node.js 18+';
+        document.getElementById('platform').textContent = status.environment || 'macOS Darwin';
+        
+        // 更新运行时间
+        if (status.uptime) {
+            const uptimeHours = Math.floor(status.uptime / 3600);
+            const uptimeMinutes = Math.floor((status.uptime % 3600) / 60);
+            document.getElementById('uptime').textContent = \`\${uptimeHours}小时 \${uptimeMinutes}分钟\`;
+        }
+        
+    } catch (error) {
+        console.error('更新仪表板失败:', error);
+    }
+}
+
+// 更新内存图表
+function updateMemoryChart(memoryUsage) {
+    const now = new Date().toLocaleTimeString('zh-CN');
+    
+    memoryData.push(memoryUsage);
+    chartLabels.push(now);
+    
+    // 保持最近20个数据点
+    if (memoryData.length > 20) {
+        memoryData.shift();
+        chartLabels.shift();
+    }
+    
+    memoryChart.data.labels = chartLabels;
+    memoryChart.data.datasets[0].data = memoryData;
+    memoryChart.update();
+}
+
+// 检查特定服务状态
+async function checkStatus(service) {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    Utils.showLoading(button, '检查中...');
+    
+    try {
+        await updateDashboard();
+        setTimeout(() => {
+            Utils.hideLoading(button, originalText);
+        }, 1000);
+    } catch (error) {
+        Utils.hideLoading(button, originalText);
+    }
+}
+
+// 清理内存
+async function cleanMemory() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    Utils.showLoading(button, '清理中...');
+    
+    try {
+        // 触发垃圾回收
+        if (global.gc) {
+            global.gc();
+        }
+        
+        Utils.showToast('内存清理完成！', 'success');
+        updateDashboard();
+    } catch (error) {
+        Utils.showToast('内存清理失败', 'danger');
+    } finally {
+        setTimeout(() => {
+            Utils.hideLoading(button, originalText);
+        }, 1000);
+    }
+}
+
+// 自动刷新
+function startAutoRefresh() {
+    setInterval(updateDashboard, 30000); // 每30秒刷新一次
+}
+
+// 全局暴露函数
+window.checkStatus = checkStatus;
+window.cleanMemory = cleanMemory;
+</script>
+` %>
+
+<%- include('layout', { title, page, user, scripts }) %>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-speedometer2 me-2"></i><%= title %></h2>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">生产模式</span>
+                    <span class="badge bg-info">最后更新: <%= typeof stats !== 'undefined' && stats.lastUpdate ? stats.lastUpdate : new Date().toLocaleString('zh-CN') %></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary stats-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-chat-dots-fill fs-1 me-3"></i>
+                        <div>
+                            <h5 class="card-title">总消息数</h5>
+                            <h2 class="mb-0" id="totalMessages"><%= typeof stats !== 'undefined' && stats.totalMessages ? stats.totalMessages : '--' %></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-people-fill fs-1 me-3"></i>
+                        <div>
+                            <h5 class="card-title">联系人数</h5>
+                            <h2 class="mb-0" id="totalContacts"><%= typeof stats !== 'undefined' && stats.totalContacts ? stats.totalContacts : '--' %></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-white bg-warning stats-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-collection-fill fs-1 me-3"></i>
+                        <div>
+                            <h5 class="card-title">群聊数</h5>
+                            <h2 class="mb-0" id="totalGroups"><%= typeof stats !== 'undefined' && stats.totalGroups ? stats.totalGroups : '--' %></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-memory fs-1 me-3"></i>
+                        <div>
+                            <h5 class="card-title">内存使用</h5>
+                            <h2 class="mb-0" id="memoryUsage">-- MB</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态表格 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-activity me-2"></i>系统状态</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>服务</th>
+                                    <th>状态</th>
+                                    <th>消息</th>
+                                    <th>最后检查</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statusTable">
+                                <tr>
+                                    <td>WebUI 服务</td>
+                                    <td><span class="badge bg-success">运行中</span></td>
+                                    <td>系统正常运行</td>
+                                    <td id="webServerTime">--</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="checkStatus('web')">
+                                            <i class="bi bi-arrow-clockwise"></i> 检查
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Chatlog 服务</td>
+                                    <td><span class="badge bg-warning" id="chatlogBadge">检查中...</span></td>
+                                    <td id="chatlogMessage">正在检查连接状态...</td>
+                                    <td id="chatlogTime">--</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="checkStatus('chatlog')">
+                                            <i class="bi bi-arrow-clockwise"></i> 检查
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>AI 分析服务</td>
+                                    <td><span class="badge bg-success">就绪</span></td>
+                                    <td>DeepSeek API 可用</td>
+                                    <td id="aiTime">--</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="checkStatus('ai')">
+                                            <i class="bi bi-arrow-clockwise"></i> 检查
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速操作 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>快速操作</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="/chat" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-search me-2"></i>搜索聊天记录
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="/analysis" class="btn btn-success btn-lg">
+                                    <i class="bi bi-graph-up me-2"></i>AI 智能分析
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-warning btn-lg" onclick="cleanMemory()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>清理内存
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 内存监控图表 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-memory me-2"></i>内存使用趋势</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>系统信息</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">版本:</dt>
+                        <dd class="col-sm-8">ChatLog WebUI v2.0.0</dd>
+                        
+                        <dt class="col-sm-4">运行时间:</dt>
+                        <dd class="col-sm-8" id="uptime">计算中...</dd>
+                        
+                        <dt class="col-sm-4">Node.js:</dt>
+                        <dd class="col-sm-8" id="nodeVersion">--</dd>
+                        
+                        <dt class="col-sm-4">平台:</dt>
+                        <dd class="col-sm-8" id="platform">--</dd>
+                        
+                        <dt class="col-sm-4">内存堆:</dt>
+                        <dd class="col-sm-8" id="heapInfo">--</dd>
+                        
+                        <dt class="col-sm-4">认证状态:</dt>
+                        <dd class="col-sm-8"><span class="badge bg-success">已启用</span></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

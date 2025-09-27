@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="微信聊天记录分析系统 - 安全、高效的本地化聊天数据分析工具">
+    <meta name="keywords" content="微信,聊天记录,数据分析,AI分析,本地化">
+    <meta name="author" content="ChatLog WebUI">
+    
+    <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>微信聊天记录分析系统</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" 
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet">
+    
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Moment.js for date handling -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/zh-cn.js"></script>
+    
+    <!-- Page-specific styles -->
+    <% if (typeof page !== 'undefined') { %>
+        <% if (page === 'dashboard') { %>
+            <style>
+                .stats-card { transition: transform 0.2s ease-in-out; }
+                .stats-card:hover { transform: scale(1.02); }
+                .chart-container { position: relative; height: 300px; }
+            </style>
+        <% } %>
+        <% if (page === 'analysis') { %>
+            <style>
+                .analysis-type-card { cursor: pointer; transition: all 0.2s ease-in-out; }
+                .analysis-type-card:hover { border-color: var(--bs-primary); box-shadow: 0 4px 8px rgba(0,123,255,0.2); }
+                .analysis-type-card.selected { border-color: var(--bs-primary); background-color: rgba(0,123,255,0.05); }
+            </style>
+        <% } %>
+        <% if (page === 'chat') { %>
+            <style>
+                .search-filters { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); }
+                .message-item { transition: background-color 0.2s ease-in-out; }
+                .message-item:hover { background-color: rgba(0,123,255,0.05); }
+            </style>
+        <% } %>
+    <% } %>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="bi bi-chat-dots-fill me-2 fs-4"></i>
+                <span class="fw-bold">微信聊天分析系统</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link <%= typeof page !== 'undefined' && page === 'dashboard' ? 'active' : '' %>" 
+                           href="/dashboard">
+                            <i class="bi bi-speedometer2 me-1"></i>数据面板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= typeof page !== 'undefined' && page === 'chat' ? 'active' : '' %>" 
+                           href="/chat">
+                            <i class="bi bi-search me-1"></i>聊天搜索
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= typeof page !== 'undefined' && page === 'analysis' ? 'active' : '' %>" 
+                           href="/analysis">
+                            <i class="bi bi-graph-up me-1"></i>AI分析
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" 
+                               id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i>
+                                <%= user.username || user.displayName || '用户' %>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="/profile">
+                                        <i class="bi bi-person me-2"></i>个人资料
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/settings">
+                                        <i class="bi bi-gear me-2"></i>系统设置
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="/logout" class="d-inline">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-box-arrow-right me-2"></i>退出登录
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    <% } else { %>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/login">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>登录
+                            </a>
+                        </li>
+                    <% } %>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1">
+        <!-- Alert Messages -->
+        <% if (typeof message !== 'undefined' && message) { %>
+            <div class="container mt-3">
+                <div class="alert alert-<%= typeof messageType !== 'undefined' ? messageType : 'info' %> alert-dismissible fade show" role="alert">
+                    <% if (messageType === 'danger') { %>
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <% } else if (messageType === 'success') { %>
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                    <% } else if (messageType === 'warning') { %>
+                        <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    <% } else { %>
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                    <% } %>
+                    <%= message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        <% } %>
+        
+        <!-- Legacy error/success support -->
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="container mt-3">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <%= error %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        <% } %>
+        
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="container mt-3">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        <% } %>
+        
+        <!-- Page Content -->
+        <%- body %>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light border-top mt-auto py-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">
+                        <small>
+                            <i class="bi bi-shield-check me-1"></i>
+                            微信聊天记录分析系统 v2.0.0 - 本地化隐私保护
+                        </small>
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="d-flex justify-content-md-end align-items-center flex-wrap">
+                        <a href="/status" class="text-decoration-none text-muted me-3">
+                            <small><i class="bi bi-activity me-1"></i>系统状态</small>
+                        </a>
+                        <a href="/privacy" class="text-decoration-none text-muted me-3">
+                            <small><i class="bi bi-lock me-1"></i>隐私政策</small>
+                        </a>
+                        <a href="/terms" class="text-decoration-none text-muted">
+                            <small><i class="bi bi-file-text me-1"></i>使用条款</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    
+    <!-- Global JavaScript utilities -->
+    <script>
+        // 全局工具函数
+        const Utils = {
+            // 显示加载状态
+            showLoading: function(element, text = '加载中...') {
+                if (element) {
+                    element.innerHTML = `<i class="loading-spinner me-2"></i>${text}`;
+                    element.disabled = true;
+                }
+            },
+            
+            // 隐藏加载状态
+            hideLoading: function(element, originalText) {
+                if (element) {
+                    element.innerHTML = originalText;
+                    element.disabled = false;
+                }
+            },
+            
+            // 显示提示消息
+            showToast: function(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                toast.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(toast);
+                
+                // 自动移除
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 5000);
+            },
+            
+            // 格式化日期
+            formatDate: function(date) {
+                return new Date(date).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            },
+            
+            // 格式化文件大小
+            formatFileSize: function(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+            
+            // 防抖函数
+            debounce: function(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+        };
+        
+        // 设置 moment.js 中文本地化
+        if (typeof moment !== 'undefined') {
+            moment.locale('zh-cn');
+        }
+        
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('页面错误:', event.error);
+        });
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化工具提示
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // 初始化弹出框
+            const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
+            });
+            
+            // 自动关闭提示信息
+            const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+            alerts.forEach(alert => {
+                if (!alert.querySelector('.btn-close')) {
+                    setTimeout(() => {
+                        alert.style.transition = 'opacity 0.5s';
+                        alert.style.opacity = '0';
+                        setTimeout(() => {
+                            if (alert.parentNode) {
+                                alert.parentNode.removeChild(alert);
+                            }
+                        }, 500);
+                    }, 5000);
+                }
+            });
+        });
+    </script>
+    
+    <!-- Page-specific scripts -->
+    <% if (typeof scripts !== 'undefined') { %>
+        <%- scripts %>
+    <% } %>
+</body>
+</html>

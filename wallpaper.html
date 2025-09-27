@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>每日壁纸生成器</title>
-    <!-- 引入免费的中文艺术字体 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -174,45 +170,23 @@
         }
 
         .theme-1 {
-            background: linear-gradient(135deg, #1a1a1a 0%, #3d3d3d 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .theme-2 {
-            background: linear-gradient(135deg, #e8e3db 0%, #c7b9a8 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
         .theme-3 {
-            background: linear-gradient(135deg, #667eea 0%, #5e60ce 100%);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
 
         .theme-4 {
-            background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
 
         .theme-5 {
-            background: linear-gradient(135deg, #f4a261 0%, #e76f51 100%);
-        }
-
-        .font-btn {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-
-        .font-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .font-btn.active {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: white;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
 
         .spacing-btn {
@@ -281,17 +255,6 @@
                     </div>
                 </div>
             </div>
-
-            <div style="margin-top: 15px;">
-                <label>字体风格</label>
-                <div style="display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap;">
-                    <button class="font-btn active" data-font="system">默认</button>
-                    <button class="font-btn" data-font="serif">宋体风</button>
-                    <button class="font-btn" data-font="rounded">圆体风</button>
-                    <button class="font-btn" data-font="tech">科技风</button>
-                    <button class="font-btn" data-font="hand">手写风</button>
-                </div>
-            </div>
         </div>
 
         <div class="preview-container">
@@ -320,92 +283,42 @@
         previewCanvas.width = 1206;
         previewCanvas.height = 2622;
 
-        // Theme gradients - 2024极简设计趋势
+        // Theme gradients
         const themes = {
-            1: ['#1a1a1a', '#3d3d3d'],  // 深黑渐变 - Ultra Thin
-            2: ['#e8e3db', '#c7b9a8'],  // 米色石纹 - Stone Neutral
-            3: ['#667eea', '#5e60ce'],  // 液态紫 - Liquid Glass
-            4: ['#00b4d8', '#0077b6'],  // 深海蓝 - Ocean Depth
-            5: ['#f4a261', '#e76f51']   // 赤陶日落 - Terracotta Sunset
+            1: ['#667eea', '#764ba2'],  // Purple
+            2: ['#f093fb', '#f5576c'],  // Pink
+            3: ['#4facfe', '#00f2fe'],  // Blue
+            4: ['#43e97b', '#38f9d7'],  // Green
+            5: ['#fa709a', '#fee140']   // Sunset
         };
 
         let currentTheme = 1;
         let currentText = '每天进步1%';
         let currentTextColor = '#ffffff';
         let currentLineSpacing = 1.25;
-        let currentFontStyle = 'system';
-
-        // 字体配置
-        const fontStyles = {
-            system: {
-                family: '-apple-system, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
-                weight: '400',
-                style: 'normal'
-            },
-            serif: {
-                family: '"Noto Serif SC", "Songti SC", "STSong", serif',
-                weight: '600',
-                style: 'normal'
-            },
-            rounded: {
-                family: '"ZCOOL KuaiLe", "PingFang SC", sans-serif',
-                weight: 'normal',
-                style: 'normal'
-            },
-            tech: {
-                family: '"Noto Sans SC", "SF Pro Display", sans-serif',
-                weight: '300',
-                style: 'normal',
-                letterSpacing: '0.05em'
-            },
-            hand: {
-                family: '"Ma Shan Zheng", "ZCOOL XiaoWei", cursive',
-                weight: 'normal',
-                style: 'normal'
-            }
-        };
 
         // Draw wallpaper function
         function drawWallpaper(targetCtx, targetCanvas) {
             // Clear canvas
             targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
 
-            // Draw gradient background with better angle
-            const gradient = targetCtx.createLinearGradient(0, 0, targetCanvas.width * 0.5, targetCanvas.height);
+            // Draw gradient background
+            const gradient = targetCtx.createLinearGradient(0, 0, targetCanvas.width, targetCanvas.height);
             gradient.addColorStop(0, themes[currentTheme][0]);
-            gradient.addColorStop(0.6, themes[currentTheme][1]);
-            gradient.addColorStop(1, themes[currentTheme][0]);
+            gradient.addColorStop(1, themes[currentTheme][1]);
             targetCtx.fillStyle = gradient;
             targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
 
-            // Add liquid glass effect - 极简几何元素
-            targetCtx.globalAlpha = 0.03;
-
-            // 添加极简几何圆形
-            for (let i = 0; i < 3; i++) {
-                const x = targetCanvas.width * (0.3 + i * 0.2);
-                const y = targetCanvas.height * (0.2 + i * 0.3);
-                const radius = 300 + i * 100;
-
-                const circleGradient = targetCtx.createRadialGradient(x, y, 0, x, y, radius);
-                circleGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-                circleGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                targetCtx.fillStyle = circleGradient;
+            // Add subtle overlay pattern
+            targetCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * targetCanvas.width;
+                const y = Math.random() * targetCanvas.height;
+                const radius = Math.random() * 200 + 100;
                 targetCtx.beginPath();
                 targetCtx.arc(x, y, radius, 0, Math.PI * 2);
                 targetCtx.fill();
             }
-
-            // 添加极细线条装饰
-            targetCtx.globalAlpha = 0.05;
-            targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            targetCtx.lineWidth = 0.5;
-            targetCtx.beginPath();
-            targetCtx.moveTo(0, targetCanvas.height * 0.3);
-            targetCtx.quadraticCurveTo(targetCanvas.width * 0.5, targetCanvas.height * 0.35, targetCanvas.width, targetCanvas.height * 0.3);
-            targetCtx.stroke();
-
-            targetCtx.globalAlpha = 1;
 
             // Draw text
             if (currentText) {
@@ -429,12 +342,7 @@
                     fontSize = 70;
                 }
 
-                // 应用字体样式
-                const fontStyle = fontStyles[currentFontStyle];
-                targetCtx.font = `${fontStyle.style === 'italic' ? 'italic ' : ''}${fontStyle.weight} ${fontSize}px ${fontStyle.family}`;
-                if (fontStyle.letterSpacing) {
-                    // 注意：Canvas不直接支持letter-spacing，需要手动处理
-                }
+                targetCtx.font = `${fontSize}px -apple-system, 'PingFang SC', sans-serif`;
 
                 // Position text in golden ratio point (slightly above center)
                 const textY = targetCanvas.height * 0.45;
@@ -489,6 +397,13 @@
                 targetCtx.shadowBlur = 0;
                 targetCtx.shadowOffsetX = 0;
                 targetCtx.shadowOffsetY = 0;
+
+                // Add date in small text at bottom
+                const date = new Date();
+                const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+                targetCtx.font = '28px -apple-system, sans-serif';
+                targetCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                targetCtx.fillText(dateStr, targetCanvas.width / 2, targetCanvas.height * 0.85);
             }
         }
 
@@ -526,16 +441,6 @@
                 document.querySelector('.spacing-btn.active').classList.remove('active');
                 btn.classList.add('active');
                 currentLineSpacing = parseFloat(btn.dataset.spacing);
-                updateWallpaper();
-            });
-        });
-
-        // Font style buttons
-        document.querySelectorAll('.font-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelector('.font-btn.active').classList.remove('active');
-                btn.classList.add('active');
-                currentFontStyle = btn.dataset.font;
                 updateWallpaper();
             });
         });

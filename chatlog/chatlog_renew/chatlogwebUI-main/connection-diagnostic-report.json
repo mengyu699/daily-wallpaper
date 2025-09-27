@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-07-18T01:55:41.760Z",
+  "results": [
+    {
+      "name": "文件系统检查",
+      "status": "PASS",
+      "message": "所有必需文件都存在"
+    },
+    {
+      "name": "进程状态检查",
+      "status": "WARNING",
+      "message": "只有Web服务在运行，缺少chatlog服务",
+      "suggestion": "运行: ./chatlog http-server --port 5030"
+    },
+    {
+      "name": "网络端口检查",
+      "status": "WARNING",
+      "message": "部分端口空闲: 5030",
+      "suggestion": "检查服务启动状态"
+    },
+    {
+      "name": "服务响应检查",
+      "status": "ERROR",
+      "message": "chatlog服务无响应",
+      "suggestion": "重启服务: ./chatlogwebUI-startup.sh restart"
+    },
+    {
+      "name": "权限检查",
+      "status": "PASS",
+      "message": "chatlog文件有执行权限"
+    },
+    {
+      "name": "依赖检查",
+      "status": "PASS",
+      "message": "Node.js: v20.19.3, npm: 10.8.2"
+    },
+    {
+      "name": "配置检查",
+      "status": "PASS",
+      "message": "配置文件完整"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "pass": 4,
+    "warning": 2,
+    "error": 1
+  }
+}

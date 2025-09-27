@@ -1,0 +1,29 @@
+[
+  {
+    "_id": "msg_001",
+    "sender": "张三",
+    "receiver": "我",
+    "content": "今晚一起吃饭吗？",
+    "timestamp": "2024-07-15T10:30:00.000Z",
+    "chatId": "chat_001",
+    "type": "text"
+  },
+  {
+    "_id": "msg_002",
+    "sender": "李四",
+    "receiver": "我",
+    "content": "项目进展如何？明天需要汇报",
+    "timestamp": "2024-07-16T01:15:00.000Z",
+    "chatId": "chat_002",
+    "type": "text"
+  },
+  {
+    "_id": "msg_003",
+    "sender": "王五",
+    "receiver": "项目群",
+    "content": "大家辛苦啦！今晚8点线上会议",
+    "timestamp": "2024-07-16T06:20:00.000Z",
+    "chatId": "chat_003",
+    "type": "text"
+  }
+]

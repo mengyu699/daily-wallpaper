@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - 微信聊天记录分析系统</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-chat-dots-fill me-2"></i>
+                微信聊天分析系统
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="bi bi-speedometer2"></i> 数据面板
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="chatDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-search"></i> 聊天记录
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/chat">消息搜索</a></li>
+                            <li><a class="dropdown-item" href="/chat/contacts">联系人</a></li>
+                            <li><a class="dropdown-item" href="/chat/groups">群聊</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/chat/export">数据导出</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="analysisDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-robot"></i> AI分析
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item active" href="/analysis">智能分析</a></li>
+                            <li><a class="dropdown-item" href="/analysis/history">分析历史</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="bi bi-gear"></i> 设置
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">
+                            <i class="bi bi-info-circle"></i> 关于
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-robot me-2"></i><%= title %></h2>
+                    <a href="/analysis/history" class="btn btn-outline-primary">
+                        <i class="bi bi-clock-history"></i> 分析历史
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <%= error %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <% } %>
+
+        <% if (!results) { %>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-gear-fill me-2"></i>分析配置
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/analysis/run" id="analysisForm">
+                            <div class="mb-3">
+                                <label for="analysisType" class="form-label">分析类型</label>
+                                <select class="form-select" id="analysisType" name="analysisType" required>
+                                    <option value="">请选择分析类型</option>
+                                    <% analysisTypes.forEach(function(type) { %>
+                                    <option value="<%= type.id %>" data-description="<%= type.description %>">
+                                        <%= type.name %>
+                                    </option>
+                                    <% }); %>
+                                    <option value="custom">自定义分析</option>
+                                </select>
+                                <div class="form-text" id="typeDescription">选择分析类型查看描述</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="dateRange" class="form-label">时间范围</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="date" class="form-control" id="startDate" name="startDate" placeholder="开始日期">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="date" class="form-control" id="endDate" name="endDate" placeholder="结束日期">
+                                    </div>
+                                </div>
+                                <div class="form-text">留空则分析所有时间范围的消息</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="contacts" class="form-label">指定联系人/群聊</label>
+                                <input type="text" class="form-control" id="contacts" name="contacts" 
+                                       placeholder="输入联系人昵称或群聊名称，多个用逗号分隔">
+                                <div class="form-text">留空则分析所有联系人的消息</div>
+                            </div>
+
+                            <div class="mb-3" id="customPromptDiv" style="display: none;">
+                                <label for="customPrompt" class="form-label">自定义分析要求</label>
+                                <textarea class="form-control" id="customPrompt" name="customPrompt" rows="3" 
+                                          placeholder="描述您希望AI分析的具体内容..."></textarea>
+                                <div class="form-text">例如：分析聊天中讨论最多的话题是什么</div>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" id="runAnalysisBtn">
+                                    <i class="bi bi-play-fill me-2"></i>开始分析
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightbulb me-2"></i>分析类型说明
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            <% analysisTypes.forEach(function(type) { %>
+                            <div class="list-group-item border-0 px-0">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1"><%= type.name %></h6>
+                                    <small class="text-primary">
+                                        <% if (type.id === 'summary') { %>
+                                        <i class="bi bi-file-text"></i>
+                                        <% } else if (type.id === 'sentiment') { %>
+                                        <i class="bi bi-emoji-smile"></i>
+                                        <% } else if (type.id === 'keywords') { %>
+                                        <i class="bi bi-tags"></i>
+                                        <% } else if (type.id === 'topics') { %>
+                                        <i class="bi bi-collection"></i>
+                                        <% } else if (type.id === 'statistics') { %>
+                                        <i class="bi bi-graph-up"></i>
+                                        <% } %>
+                                    </small>
+                                </div>
+                                <p class="mb-1 text-muted small"><%= type.description %></p>
+                            </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-info-circle me-2"></i>使用提示
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-check2-circle text-success me-2"></i>
+                                分析需要一定时间，请耐心等待
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check2-circle text-success me-2"></i>
+                                建议先进行小范围测试分析
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check2-circle text-success me-2"></i>
+                                自定义分析可以提出具体问题
+                            </li>
+                            <li class="mb-0">
+                                <i class="bi bi-check2-circle text-success me-2"></i>
+                                分析结果会自动保存到历史记录
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% } else { %>
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            分析结果
+                        </h5>
+                        <div>
+                            <span class="badge bg-primary me-2">
+                                <%= results.type === 'summary' ? '聊天摘要' :
+                                    results.type === 'sentiment' ? '情感分析' :
+                                    results.type === 'keywords' ? '关键词提取' :
+                                    results.type === 'topics' ? '话题分类' :
+                                    results.type === 'statistics' ? '统计分析' :
+                                    results.type === 'custom' ? '自定义分析' : '未知类型' %>
+                            </span>
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-1"></i><%= results.generatedAt %>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-chat-left-text text-primary me-2"></i>
+                                    <span>分析消息数: <strong><%= results.messageCount %></strong></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="saveAnalysis()">
+                                    <i class="bi bi-save me-1"></i>保存结果
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm ms-2" onclick="window.print()">
+                                    <i class="bi bi-printer me-1"></i>打印
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="analysis-content">
+                            <% if (results.type === 'statistics' && results.data.rawStats) { %>
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card border-primary">
+                                        <div class="card-body text-center">
+                                            <h4 class="text-primary"><%= results.data.rawStats.totalMessages %></h4>
+                                            <small class="text-muted">总消息数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <h4 class="text-success"><%= Object.keys(results.data.rawStats.topSenders).length %></h4>
+                                            <small class="text-muted">参与人数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center">
+                                            <h4 class="text-info"><%= results.data.rawStats.wordCount.averageLength %></h4>
+                                            <small class="text-muted">平均字数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center">
+                                            <h4 class="text-warning"><%= results.data.rawStats.timeRange %></h4>
+                                            <small class="text-muted">时间跨度</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% } %>
+
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <% if (results.data.summary) { %>
+                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;"><%= results.data.summary %></pre>
+                                    <% } else if (results.data.sentiment) { %>
+                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;"><%= results.data.sentiment %></pre>
+                                    <% } else if (results.data.keywords) { %>
+                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;"><%= results.data.keywords %></pre>
+                                    <% } else if (results.data.topics) { %>
+                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;"><%= results.data.topics %></pre>
+                                    <% } else if (results.data.statistics) { %>
+                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;"><%= results.data.statistics %></pre>
+                                    <% } else if (results.data.analysis) { %>
+                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;"><%= results.data.analysis %></pre>
+                                    <% } else { %>
+                                    <p class="mb-0 text-muted">分析结果为空</p>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <a href="/analysis" class="btn btn-primary">
+                                <i class="bi bi-arrow-left me-2"></i>返回分析
+                            </a>
+                            <a href="/analysis/history" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-clock-history me-2"></i>查看历史
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% } %>
+    </main>
+
+    <footer class="bg-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0 text-muted">
+                        <i class="bi bi-chat-dots me-1"></i>
+                        微信聊天记录分析系统 v1.0.0
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-0 text-muted">
+                        Powered by Chatlog & DeepSeek AI
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+    
+    <script>
+        document.getElementById('analysisType').addEventListener('change', function() {
+            const customPromptDiv = document.getElementById('customPromptDiv');
+            const descriptionDiv = document.getElementById('typeDescription');
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (this.value === 'custom') {
+                customPromptDiv.style.display = 'block';
+                document.getElementById('customPrompt').required = true;
+                descriptionDiv.textContent = '请描述您希望AI分析的具体内容';
+            } else {
+                customPromptDiv.style.display = 'none';
+                document.getElementById('customPrompt').required = false;
+                const description = selectedOption.getAttribute('data-description');
+                descriptionDiv.textContent = description || '选择分析类型查看描述';
+            }
+        });
+
+        document.getElementById('analysisForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('runAnalysisBtn');
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>分析中...';
+            btn.disabled = true;
+        });
+
+        function saveAnalysis() {
+            <% if (results) { %>
+            const analysisData = {
+                type: '<%= results.type %>',
+                data: <%- JSON.stringify(results.data) %>,
+                messageCount: <%= results.messageCount %>,
+                generatedAt: '<%= results.generatedAt %>'
+            };
+            
+            fetch('/analysis/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(analysisData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('分析结果已保存');
+                } else {
+                    alert('保存失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('保存错误:', error);
+                alert('保存失败，请稍后重试');
+            });
+            <% } %>
+        }
+
+        document.getElementById('startDate').addEventListener('change', function() {
+            const endDate = document.getElementById('endDate');
+            if (this.value && !endDate.value) {
+                endDate.min = this.value;
+            }
+        });
+
+        document.getElementById('endDate').addEventListener('change', function() {
+            const startDate = document.getElementById('startDate');
+            if (this.value && startDate.value && startDate.value > this.value) {
+                alert('结束日期不能早于开始日期');
+                this.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

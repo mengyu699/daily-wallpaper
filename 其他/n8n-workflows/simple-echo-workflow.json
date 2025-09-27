@@ -1,0 +1,80 @@
+{
+  "name": "扣子-n8n 简单回声服务",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "echo-service",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook 触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取扣子发送的数据\nconst requestData = $input.all()[0].json;\n\n// 提取用户查询和相关信息\nconst {\n  user_query = '',\n  user_id = 'unknown',\n  context = {}\n} = requestData;\n\n// 简单的回声处理逻辑\nconst processedResponse = {\n  original_query: user_query,\n  processed_text: `您说的是: ${user_query}`,\n  user_info: {\n    id: user_id,\n    request_time: new Date().toISOString()\n  },\n  context_received: context\n};\n\n// 按照标准格式返回响应\nreturn [{\n  json: {\n    success: true,\n    data: processedResponse,\n    message: \"回声服务处理成功\",\n    timestamp: new Date().toISOString(),\n    next_action: \"continue_conversation\"\n  }\n}];"
+      },
+      "id": "process-logic",
+      "name": "处理业务逻辑",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseHeaders": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key"
+        },
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook 触发器": {
+      "main": [
+        [
+          {
+            "node": "处理业务逻辑",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理业务逻辑": {
+      "main": [
+        [
+          {
+            "node": "返回响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "echo-service-workflow",
+  "tags": ["扣子集成", "示例", "基础"]
+}

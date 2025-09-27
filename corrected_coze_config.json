@@ -1,0 +1,51 @@
+{
+  "apiInfo": {
+    "method": "GET",
+    "url": "https://open.feishu.cn/open-apis/drive/v1/medias/J8RLbqGOeogrs7xFstuclLOBnAh/download"
+  },
+  "auth": {
+    "authData": {
+      "basicAuthData": {
+        "password": "",
+        "username": ""
+      },
+      "bearerTokenData": {
+        "token": "g104958ySYYSIJ2LVLKNGQJY5F2U4D2572RACEWP"
+      },
+      "customData": {
+        "addTo": "header",
+        "data": {}
+      }
+    },
+    "authOpen": true,
+    "authType": "BEARER_AUTH"
+  },
+  "body": {
+    "bodyData": {
+      "binary": {
+        "fileURL": ""
+      },
+      "formData": {
+        "data": {},
+        "typeMapping": ""
+      },
+      "formURLEncoded": {},
+      "json": "",
+      "rawText": ""
+    },
+    "bodyType": "EMPTY"
+  },
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (compatible; Coze-Bot)"
+  },
+  "inputParam": {},
+  "params": {},
+  "setting": {
+    "retryTimes": 3,
+    "timeout": 30
+  },
+  "settingOnError": {
+    "dataOnErr": "{\n    \"error\": \"Download failed\",\n    \"statusCode\": 0,\n    \"headers\": \"\"\n}",
+    "switch": true
+  }
+}

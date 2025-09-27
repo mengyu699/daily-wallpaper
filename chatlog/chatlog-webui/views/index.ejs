@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - 微信聊天记录分析系统</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-chat-dots-fill me-2"></i>
+                微信聊天分析系统
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">
+                            <i class="bi bi-house"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="bi bi-speedometer2"></i> 数据面板
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="chatDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-search"></i> 聊天记录
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/chat">消息搜索</a></li>
+                            <li><a class="dropdown-item" href="/chat/contacts">联系人</a></li>
+                            <li><a class="dropdown-item" href="/chat/groups">群聊</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/chat/export">数据导出</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="analysisDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-robot"></i> AI分析
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/analysis">智能分析</a></li>
+                            <li><a class="dropdown-item" href="/analysis/history">分析历史</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="bi bi-gear"></i> 设置
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">
+                            <i class="bi bi-info-circle"></i> 关于
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <div class="jumbotron bg-gradient text-white rounded-3 p-5 mb-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="container-fluid py-5">
+                <h1 class="display-5 fw-bold">欢迎使用微信聊天记录分析系统</h1>
+                <p class="col-md-8 fs-4">
+                    基于Chatlog工具和DeepSeek AI的智能聊天记录分析平台，帮助您深入了解聊天数据的价值。
+                </p>
+                <a class="btn btn-light btn-lg" href="/chat" role="button">
+                    <i class="bi bi-search me-2"></i>开始搜索
+                </a>
+                <a class="btn btn-outline-light btn-lg ms-3" href="/analysis" role="button">
+                    <i class="bi bi-robot me-2"></i>AI分析
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-primary bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem;">
+                            <i class="bi bi-search fs-2"></i>
+                        </div>
+                        <h3 class="card-title">智能搜索</h3>
+                        <p class="card-text">
+                            多维度搜索聊天记录，支持关键词、时间范围、联系人等多种筛选条件，快速定位所需信息。
+                        </p>
+                        <a href="/chat" class="btn btn-primary">立即搜索</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-success bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem;">
+                            <i class="bi bi-robot fs-2"></i>
+                        </div>
+                        <h3 class="card-title">AI智能分析</h3>
+                        <p class="card-text">
+                            利用DeepSeek AI技术，自动生成聊天摘要、情感分析、关键词提取等多种智能分析报告。
+                        </p>
+                        <a href="/analysis" class="btn btn-success">开始分析</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-info bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem;">
+                            <i class="bi bi-graph-up fs-2"></i>
+                        </div>
+                        <h3 class="card-title">数据可视化</h3>
+                        <p class="card-text">
+                            丰富的图表展示，包括消息频率、活跃时间、联系人统计等，让数据一目了然。
+                        </p>
+                        <a href="/dashboard" class="btn btn-info">查看面板</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-lg-6 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-speedometer2 text-primary me-2"></i>
+                            快速开始
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ol class="list-group list-group-numbered list-group-flush">
+                            <li class="list-group-item border-0 ps-0">
+                                <strong>安装Chatlog工具</strong>
+                                <br><small class="text-muted">下载并安装Chatlog工具，用于提取微信聊天记录</small>
+                            </li>
+                            <li class="list-group-item border-0 ps-0">
+                                <strong>登录微信客户端</strong>
+                                <br><small class="text-muted">确保微信Mac版已登录并能正常使用</small>
+                            </li>
+                            <li class="list-group-item border-0 ps-0">
+                                <strong>启动Chatlog服务</strong>
+                                <br><small class="text-muted">运行 chatlog server 命令启动本地服务</small>
+                            </li>
+                            <li class="list-group-item border-0 ps-0">
+                                <strong>开始分析</strong>
+                                <br><small class="text-muted">使用本系统搜索和分析您的聊天记录</small>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle text-info me-2"></i>
+                            系统状态
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span>Web服务状态</span>
+                            <span class="badge bg-success">运行中</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span>Chatlog连接</span>
+                            <span class="badge bg-warning" id="chatlogStatus">检测中</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span>AI服务状态</span>
+                            <span class="badge bg-success">就绪</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>系统时间</span>
+                            <span class="text-muted"><%= currentTime %></span>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="checkChatlogStatus()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>检测状态
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    <strong>温馨提示：</strong>
+                    请确保您已阅读并理解相关的隐私政策和使用条款。本系统仅用于个人聊天记录分析，请遵守相关法律法规。
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0 text-muted">
+                        <i class="bi bi-chat-dots me-1"></i>
+                        微信聊天记录分析系统 v1.0.0
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-0 text-muted">
+                        Powered by Chatlog & DeepSeek AI
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+    
+    <script>
+        async function checkChatlogStatus() {
+            const statusElement = document.getElementById('chatlogStatus');
+            statusElement.textContent = '检测中...';
+            statusElement.className = 'badge bg-secondary';
+            
+            try {
+                const response = await fetch('/api/chatlog/status');
+                const result = await response.json();
+                
+                if (result.connected) {
+                    statusElement.textContent = '已连接';
+                    statusElement.className = 'badge bg-success';
+                } else {
+                    statusElement.textContent = '未连接';
+                    statusElement.className = 'badge bg-danger';
+                }
+            } catch (error) {
+                statusElement.textContent = '检测失败';
+                statusElement.className = 'badge bg-danger';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            checkChatlogStatus();
+        });
+    </script>
+</body>
+</html>

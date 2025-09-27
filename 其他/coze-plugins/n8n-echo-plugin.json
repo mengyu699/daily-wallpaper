@@ -1,0 +1,206 @@
+{
+  "plugin_name": "n8n-echo-service",
+  "plugin_description": "连接到n8n工作流的简单回声服务，用于测试集成功能",
+  "plugin_version": "1.0.0",
+  "base_url": "https://your-n8n-instance.com",
+  "authentication": {
+    "type": "service",
+    "method": "header",
+    "key": "X-API-Key",
+    "value": "your-secret-api-key"
+  },
+  "apis": [
+    {
+      "name": "processEcho",
+      "description": "处理用户输入并返回回声响应",
+      "path": "/webhook/echo-service",
+      "method": "POST",
+      "parameters": [
+        {
+          "name": "user_query",
+          "type": "string",
+          "required": true,
+          "description": "用户输入的查询内容",
+          "example": "你好，这是一个测试"
+        },
+        {
+          "name": "user_id",
+          "type": "string", 
+          "required": true,
+          "description": "用户的唯一标识",
+          "example": "user_12345"
+        },
+        {
+          "name": "context",
+          "type": "object",
+          "required": false,
+          "description": "上下文信息对象",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "会话ID"
+            },
+            "timestamp": {
+              "type": "string",
+              "description": "请求时间戳"
+            },
+            "metadata": {
+              "type": "object",
+              "description": "额外的元数据"
+            }
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "成功响应",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "处理是否成功"
+              },
+              "data": {
+                "type": "object",
+                "description": "返回的数据",
+                "properties": {
+                  "original_query": {
+                    "type": "string",
+                    "description": "原始用户查询"
+                  },
+                  "processed_text": {
+                    "type": "string", 
+                    "description": "处理后的文本"
+                  },
+                  "user_info": {
+                    "type": "object",
+                    "description": "用户信息"
+                  },
+                  "context_received": {
+                    "type": "object",
+                    "description": "接收到的上下文"
+                  }
+                }
+              },
+              "message": {
+                "type": "string",
+                "description": "友好的提示信息"
+              },
+              "timestamp": {
+                "type": "string",
+                "description": "处理时间戳"
+              },
+              "next_action": {
+                "type": "string",
+                "description": "建议的下一步操作"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "请求参数错误",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "example": false
+              },
+              "message": {
+                "type": "string",
+                "example": "缺少必要参数"
+              },
+              "error_code": {
+                "type": "string",
+                "example": "INVALID_PARAMETERS"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "服务器内部错误",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "example": false
+              },
+              "message": {
+                "type": "string",
+                "example": "服务暂时不可用"
+              },
+              "error_code": {
+                "type": "string",
+                "example": "INTERNAL_ERROR"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "test_cases": [
+    {
+      "name": "基本回声测试",
+      "request": {
+        "user_query": "你好世界",
+        "user_id": "test_user_001",
+        "context": {
+          "session_id": "session_123",
+          "timestamp": "2025-01-20T10:30:00Z"
+        }
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "original_query": "你好世界",
+          "processed_text": "您说的是: 你好世界"
+        },
+        "message": "回声服务处理成功"
+      }
+    },
+    {
+      "name": "最小参数测试",
+      "request": {
+        "user_query": "测试",
+        "user_id": "test_user_002"
+      },
+      "expected_response": {
+        "success": true,
+        "message": "回声服务处理成功"
+      }
+    }
+  ],
+  "usage_examples": [
+    {
+      "scenario": "智能客服场景",
+      "description": "用户咨询时，首先通过回声服务确认理解正确",
+      "prompt_template": "用户说：{{user_query}}。请使用processEcho插件确认理解，然后给出回应。",
+      "parameters": {
+        "user_query": "{{用户输入}}",
+        "user_id": "{{conversation.user_id}}",
+        "context": {
+          "session_id": "{{conversation.session_id}}",
+          "timestamp": "{{timestamp}}"
+        }
+      }
+    },
+    {
+      "scenario": "调试和测试",
+      "description": "验证n8n和扣子之间的连接是否正常",
+      "prompt_template": "请测试与n8n的连接，发送测试消息：{{test_message}}",
+      "parameters": {
+        "user_query": "{{test_message}}",
+        "user_id": "debug_user"
+      }
+    }
+  ],
+  "configuration_notes": [
+    "请确保n8n实例可以从公网访问",
+    "建议在生产环境中配置API密钥认证",
+    "测试时可以先使用不需要授权的模式",
+    "响应时间建议控制在5秒以内以获得最佳用户体验"
+  ]
+}
